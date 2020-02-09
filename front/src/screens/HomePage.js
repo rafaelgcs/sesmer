@@ -257,7 +257,7 @@ export default function HomePage() {
                     <Grid container spacing={3}>
                         {/* Chart */}
                         <Grid item xs={12} md={8} lg={9}>
-                            <Paper className={fixedHeightPaper}>
+                            <Paper >
                                 <Chart />
                             </Paper>
                         </Grid>
