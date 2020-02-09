@@ -242,7 +242,6 @@ export default function CartPage() {
                                             </Typography>
                                         </Grid>
                                     </Grid>
-
                                 </Link>
                             </Paper>
                         </Grid>
@@ -250,6 +249,7 @@ export default function CartPage() {
                         <Grid item xs={12} md={4} lg={3}>
                             <Paper className={fixedHeightPaper}>
                                 <Link
+                                    disabled
                                     variant="body2"
                                     onClick={() => {
                                         console.info("I'm a button.");
@@ -257,21 +257,20 @@ export default function CartPage() {
                                     style={{ cursor: 'pointer', color: 'green', textDecoration: 'none' }}
                                 >
                                     <Grid container>
-                                        <Grid item xs={4} style={{ alignContent: 'center', textAlign: 'center' }}>
+                                        {/* <Grid item xs={4} style={{ alignContent: 'center', textAlign: 'center' }}>
                                             <div style={{ width: '100%', alignContent: 'center', textAlign: 'center', flex: 1 }}>
-                                                <AddShoppingCartIcon style={{ color: 'green', fontSize: 70, }} />
+                                                <ShoppingBasketIcon style={{ color: 'green', fontSize: 70, }} />
                                             </div>
-                                        </Grid>
-                                        <Grid item xs={8}>
-                                            <Typography component="p" variant="h5" >
-                                                Nova Venda
+                                        </Grid> */}
+                                        <Grid item xs={12}>
+                                            <Typography component="p" variant="h6" >
+                                                Vendas Por Cliente
                                             </Typography>
                                             <Typography component="p" style={{ color: 'grey' }} >
-                                                Inicie uma nova venda
+                                                Pesquise as vendas feitas por um cliente específico
                                             </Typography>
                                         </Grid>
                                     </Grid>
-
                                 </Link>
                             </Paper>
                         </Grid>

@@ -5,7 +5,7 @@ class User
 
     // database connection and table name
     private $conn;
-    private $table_name = "user";
+    private $table_name = "clientes";
 
     // object properties
     public $id;

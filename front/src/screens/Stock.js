@@ -298,11 +298,6 @@ function ClientsTable(props) {
                                 data.push(newData);
                                 return { ...prevData, data};
                             });
-                            // setState(prevState => {
-                            //     const data = [...prevState.data];
-                            //     data.push(newData);
-                            //     return { ...prevState, data };
-                            // });
                         }, 600);
                     }),
                 onRowUpdate: (newData, oldData) =>

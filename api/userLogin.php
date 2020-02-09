@@ -21,13 +21,13 @@ $data = json_decode(file_get_contents("php://input"));
 $user->email = $data->email;
 $email_exists = $user->emailExists();
 
-$verifyPassword = $user->verifyPassword($data->password);
+// $verifyPassword = $user->login($data->password);
 
 
 // check if email exists and if password is correct
-if ($email_exists && $verifyPassword) {
+if ($email_exists) {
 
-    $userLogin = $user->login();
+    $userLogin = $user->login($data->password);
 
     if ($userLogin) {
         $return = json_encode(array(
@@ -52,7 +52,7 @@ if ($email_exists && $verifyPassword) {
 
         echo json_encode(
             array(
-                "message" => "Login não pôde ser efetuado.",
+                "message" => "Senha inserida não encontrada.",
                 "logged" => false
             )
         );
@@ -62,7 +62,7 @@ if ($email_exists && $verifyPassword) {
 
     echo json_encode(
         array(
-            "message" => "User not found or e-mail and password not are correct.",
+            "message" => "Usuário não encontrado ou e-mail e senha estão incorretos.",
             "logged" => false
         )
     );

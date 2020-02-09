@@ -19,6 +19,7 @@ import { createMuiTheme, withStyles, makeStyles, ThemeProvider } from '@material
 import { green, purple } from '@material-ui/core/colors';
 import Backdrop from '@material-ui/core/Backdrop';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import { Alert, AlertTitle } from '@material-ui/lab';
 
 
 const SingInButton = withStyles(theme => ({
@@ -55,6 +56,8 @@ export default function Login() {
     const [email, setEmail] = useState();
     const [pass, setPass] = useState();
     const [open, setOpen] = useState();
+    const [openMessageError, setOpenMessageError] = useState();
+    const [messageError, setMessageError] = useState();
 
 
     const _singIn = async (e) => {
@@ -63,9 +66,15 @@ export default function Login() {
         // let response = await api.post('/userLogin.php',{email: email,password: pass});
         await api.post('/userLogin.php', { email: email, password: pass })
             .then((response) => {
-                console.log(response);
-                login(response.data);
-                window.location.href='./';
+                // console.log(response);
+                if (response.data.logged) {
+                    login(JSON.stringify(response.data.user));
+                    window.location.href = './';
+                } else {
+                    setOpen(false);
+                    setMessageError(response.data.message);
+                    setOpenMessageError(true);
+                }
             });
     }
 
@@ -84,6 +93,14 @@ export default function Login() {
                     <Typography component="h1" variant="h5">
                         SESMER v2.0
                     </Typography>
+                    {
+                        openMessageError ?
+                            <Alert severity="error"
+                                onClose={() => setOpenMessageError(false)}>
+                                <AlertTitle>Erro!</AlertTitle>
+                                {messageError}
+                            </Alert> : null
+                    }
                     <form className={classes.form} onSubmit={(e) => _singIn(e)}>
                         <CssTextField
                             variant="outlined"

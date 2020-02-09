@@ -82,7 +82,36 @@ class Product
 
         $stmt->execute();
 
-        // return false if email does not exist in the database
         return $stmt;
+    }
+
+    function productsByNameOrCode($code, $name){
+        if($code != null){
+            $query = "SELECT m.*,e.quantidade as stock,e.saidas 
+            FROM mercadorias as m, estoque as e 
+            WHERE e.mercadoriaId = m.cod and m.cod = :code";
+    
+            $stmt = $this->conn->prepare($query);
+
+            $stmt->bindParam(':code', $code);
+    
+            $stmt->execute();
+    
+            // return false if email does not exist in the database
+            return $stmt;
+        }else{
+            $query = "SELECT m.*,e.quantidade as stock,e.saidas 
+            FROM mercadorias as m, estoque as e 
+            WHERE e.mercadoriaId = m.cod and m.name = '$name'";
+    
+            $stmt = $this->conn->prepare($query);
+
+            // $stmt->bindParam('?', utf8_encode($name));
+    
+            $stmt->execute();
+    
+            // return false if email does not exist in the database
+            return $stmt;
+        }
     }
 }

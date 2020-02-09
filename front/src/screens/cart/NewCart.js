@@ -26,6 +26,9 @@ import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Fab from '@material-ui/core/Fab';
+import LinearProgress from '@material-ui/core/LinearProgress';
+import api from '../../services/api';
+import { cart as localCart, restartCart as restartLocalCart, getLocalCart } from '../../services/auth';
 
 // Components
 import TableCart from '../../components/TableCart';
@@ -52,6 +55,7 @@ import SkipPreviousIcon from '@material-ui/icons/SkipPrevious';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SkipNextIcon from '@material-ui/icons/SkipNext';
 import DoneIcon from '@material-ui/icons/Done';
+import AddShoppingCartIcon from '@material-ui/icons/AddShoppingCart';
 
 
 const drawerWidth = 240;
@@ -177,6 +181,15 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
+const GreenLinearProgress = withStyles({
+    colorPrimary: {
+        backgroundColor: 'green',
+    },
+    barColorPrimary: {
+        backgroundColor: '#6ad65e',
+    },
+})(LinearProgress);
+
 function SlideTransition(props) {
     return <Slide {...props} direction="up" />;
 }
@@ -212,12 +225,113 @@ const CssTextField = withStyles({
 export default function NewCart() {
     const classes = useStyles();
     const theme = useTheme();
+    const [loadingSearch, setLoadingSearch] = React.useState(true);
+    const [loadingCartTable, setLoadingCartTable] = React.useState(true);
+    const [loadingCartValue, setLoadingCartValue] = React.useState(true);
+    const [cart, setCart] = React.useState({
+        itens: [],
+        itemSelected: null,
+        valor: 0.0,
+        status: 0,
+        showItemSelected: false,
+    });
     const [open, setOpen] = React.useState(true);
     const [snackOpen, setSnackOpen] = React.useState(false);
+    const [messageSnackBar, setMessageSnackBar] = React.useState("");
     const [openAutoComplete, setOpenAutoComplete] = React.useState(false);
     const [options, setOptions] = React.useState([]);
+    const [valueProductSearch, setValueProductSearch] = React.useState('');
     const loadingAutoComplete = openAutoComplete && options.length === 0;
 
+    const escolherItem = async (e) => {
+        e.preventDefault();
+        setLoadingSearch(true);
+        const response = await api.get(`/getProductsByNameOrCode.php?name=${valueProductSearch}`);
+        // React.useEffect(() => {
+        let newCart = cart;
+        newCart.itemSelected = response.data.products[0];
+        newCart.showItemSelected = true;
+        setCart(newCart);
+        setLoadingSearch(false);
+    };
+
+    const verifyItemInCart = (obj) => {
+        let counter = cart.itens.filter(item => item.obj.id == obj.id).length;
+
+        if (counter == 0) {
+            return false;
+        }
+
+        return true;
+    };
+
+    const resetCart = async () => {
+        setLoadingCartTable(true);
+        setLoadingCartValue(true);
+        setLoadingSearch(true);
+
+        let newCart = cart;
+        newCart.itemSelected = {};
+        newCart.itens = [];
+        newCart.showItemSelected = false;
+        newCart.valor = 0.0;
+        setCart(newCart);
+        setValueProductSearch("");
+        restartLocalCart();
+        setMessageSnackBar("Carrinho está vazio...");
+        setSnackOpen(true);
+        await sleep(800);
+
+        setLoadingCartTable(false);
+        setLoadingCartValue(false);
+        setLoadingSearch(false);
+    };
+
+    const calcNewCartValue = (editCart) => {
+        let value = 0.0;
+
+        editCart.itens.map((item) => {
+            value += parseFloat(item.valor);
+        });
+
+        return value;
+    };
+
+    const insertItemInCart = async () => {
+
+        setLoadingCartTable(true);
+        setLoadingCartValue(true);
+        let newCart = cart;
+
+        let isExist = verifyItemInCart(newCart.itemSelected);
+        newCart.status = 1;
+        if (newCart.itemSelected.stock == 0 || newCart.itemSelected.stock == newCart.itemSelected.saidas) {
+            setMessageSnackBar("O item não está mais em estoque...");
+            setSnackOpen(true);
+        } else {
+            if (!isExist) {
+                let item = { id: newCart.itemSelected.id, obj: newCart.itemSelected, quantidade: 1, valor: newCart.itemSelected.p_final };
+                newCart.itens.push(item);
+                newCart.valor = calcNewCartValue(newCart).toFixed(2);
+                setCart(newCart);
+            } else {
+                let item = newCart.itens.filter(item => item.obj.id == newCart.itemSelected.id)[0];
+                if(item.quantidade < item.obj.stock){
+                    item.quantidade += 1;
+                    item.valor = parseFloat(parseFloat(newCart.itemSelected.p_final) + parseFloat(item.valor)).toFixed(2);
+                    newCart.valor = parseFloat(calcNewCartValue(newCart).toFixed(2));
+                    setCart(newCart);
+                }else{
+                    setMessageSnackBar("O item não está mais em estoque...");
+                    setSnackOpen(true);
+                }
+            }
+        }
+        localCart(JSON.stringify(newCart));
+        await sleep(100);
+        setLoadingCartTable(false);
+        setLoadingCartValue(false);
+    };
 
     const handleDrawerOpen = () => {
         setOpen(true);
@@ -242,12 +356,12 @@ export default function NewCart() {
         }
 
         (async () => {
-            const response = await fetch('https://country.register.gov.uk/records.json?page-size=5000');
-            await sleep(1e3); // For demo purposes.
-            const countries = await response.json();
+            const response = await api.get('/getProducts.php');
 
+            const returned = await JSON.stringify(response.data.products);
+            const products = await JSON.parse(returned);
             if (active) {
-                setOptions(Object.keys(countries).map(key => countries[key].item[0]));
+                setOptions(Object.keys(products).map(key => products[key]));
             }
         })();
 
@@ -261,6 +375,29 @@ export default function NewCart() {
             setOptions([]);
         }
     }, [openAutoComplete]);
+
+    React.useEffect(() => {
+        // restartLocalCart();
+        if (cart.status == 0) {
+            let newCart;
+            //   let cartReceived = false;
+            try {
+                newCart = getLocalCart();
+            } catch{
+                console.log("O catch funcionou e caiu nele haha");
+            }
+            console.log(newCart);
+            if (newCart != null) {
+
+
+                setCart(JSON.parse(newCart));
+            }
+
+            setLoadingCartTable(false);
+            setLoadingCartValue(false);
+            setLoadingSearch(false);
+        }
+    });
 
 
     return (
@@ -319,15 +456,17 @@ export default function NewCart() {
                     <Grid container spacing={3}>
                         {/* Search itens */}
                         <Grid item xs={12}>
-                            <Paper component="form" className={classes.root2}>
+                            <Paper component="form" onSubmit={(e) => escolherItem(e)} className={classes.root2}>
                                 <IconButton className={classes.iconButton2} aria-label="menu">
                                     <MenuIcon />
                                 </IconButton>
-
                                 <Autocomplete
                                     id="asynchronous-demo"
                                     style={{ width: '100%' }}
                                     open={openAutoComplete}
+                                    defaultValue={valueProductSearch}
+                                    inputValue={valueProductSearch}
+                                    onInputChange={(event, value) => setValueProductSearch(value)}
                                     onOpen={() => {
                                         setOpenAutoComplete(true);
                                     }}
@@ -345,6 +484,8 @@ export default function NewCart() {
                                             fullWidth
                                             variant="outlined"
                                             style={{ border: 'none' }}
+                                            // value={valueProductSearch}
+                                            onChange={item => setValueProductSearch(item.target.value)}
                                             InputProps={{
                                                 ...params.InputProps,
                                                 endAdornment: (
@@ -357,7 +498,6 @@ export default function NewCart() {
                                         />
                                     )}
                                 />
-
                                 {/* <InputBase
                                     className={classes.input}
                                     placeholder="Search Google Maps"
@@ -375,58 +515,81 @@ export default function NewCart() {
                         <Grid item xs={8}>
                             <Grid container spacing={3}>
                                 <Grid item xs={12}>
-                                    <Card className={classes.card}>
-                                        <div className={classes.detailsCard}>
-                                            <CardContent className={classes.contentCard}>
-                                                <Typography component="h5" variant="h5">
-                                                    Live From Space
-                                        </Typography>
-                                                <Typography variant="subtitle1" color="textSecondary">
-                                                    Mac Miller
-                                        </Typography>
-                                            </CardContent>
-                                            <div className={classes.controlsCard}>
-                                                <IconButton aria-label="previous">
-                                                    {theme.direction === 'rtl' ? <SkipNextIcon /> : <SkipPreviousIcon />}
-                                                </IconButton>
-                                                <IconButton aria-label="play/pause">
-                                                    <PlayArrowIcon className={classes.playIcon} />
-                                                </IconButton>
-                                                <IconButton aria-label="next">
-                                                    {theme.direction === 'rtl' ? <SkipPreviousIcon /> : <SkipNextIcon />}
-                                                </IconButton>
-                                            </div>
-                                        </div>
-                                        <CardMedia
-                                            className={classes.coverCard}
-                                            image="https://material-ui.com/static/images/cards/live-from-space.jpg"
-                                            title="Live from space album cover"
-                                        />
-                                    </Card>
+                                    {loadingSearch ? <GreenLinearProgress variant="query" /> :
+                                        cart.showItemSelected
+                                            ?
+                                            <Card className={classes.card}>
+                                                <CardMedia
+                                                    className={classes.coverCard}
+                                                    image={cart.itemSelected.img}
+                                                    title={cart.itemSelected.name}
+                                                />
+                                                <div className={classes.detailsCard}>
+                                                    <CardContent className={classes.contentCard}>
+                                                        <Typography component="h5" variant="h5">
+                                                            {cart.itemSelected.name}
+                                                        </Typography>
+                                                        <Typography variant="subtitle1" color="textSecondary">
+                                                            {cart.itemSelected.description}
+                                                        </Typography>
+                                                    </CardContent>
+                                                    <div className={classes.controlsCard}>
+                                                        <Typography variant="subtitle1" color="textSecondary">
+                                                            Valor: R$ {cart.itemSelected.p_final}
+                                                        </Typography>
+                                                        <Typography variant="subtitle1" color="textSecondary">
+                                                            - Estoque: {cart.itemSelected.stock}
+                                                        </Typography>
+                                                        {/* <IconButton aria-label="previous">
+                                                        {theme.direction === 'rtl' ? <SkipNextIcon /> : <SkipPreviousIcon />}
+                                                    </IconButton>
+                                                    <IconButton aria-label="play/pause">
+                                                        <PlayArrowIcon className={classes.playIcon} />
+                                                    </IconButton>
+                                                    <IconButton aria-label="next">
+                                                        {theme.direction === 'rtl' ? <SkipPreviousIcon /> : <SkipNextIcon />}
+                                                    </IconButton> */}
+                                                    </div>
+                                                </div>
+                                                <Button onClick={() => insertItemInCart()} startIcon={<AddShoppingCartIcon />} variant="contained">Adicionar ao Carrinho</Button>
+
+                                            </Card>
+                                            : <Typography component="h5" variant="h5">
+                                                Nenhum produto selecionado ou sendo procurado...
+                                            </Typography>
+                                    }
                                 </Grid>
                                 <Grid item xs={12}>
-                                    <Grid container justify="space-between" spacing={5} >
-                                        <Grid item xs={7} >
-                                            <Fab className="mr-2" variant="extended" style={{ backgroundColor: 'green' }} color="primary" aria-label="add">
-                                                <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} />
-                                                Finalizar Venda
-                                            </Fab>
-                                            <Fab color="primary" style={{ backgroundColor: 'red', marginLeft: 10 }} variant="extended" aria-label="edit">
-                                                Apagar Carrinho
+                                    {
+                                        cart.itens.length > 0 ?
+                                            <Grid container justify="space-between" spacing={5} >
+                                                <Grid item xs={7} >
+                                                    <Fab className="mr-2" variant="extended" style={{ backgroundColor: 'green' }} color="primary" aria-label="add">
+                                                        <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} />
+                                                        Finalizar Venda
+                                                </Fab>
+                                                    <Fab onClick={() => resetCart()} color="primary" style={{ backgroundColor: 'red', marginLeft: 10 }} variant="extended" aria-label="edit">
+                                                        Apagar Carrinho
+                                                </Fab>
 
-                                            </Fab>
+                                                </Grid>
 
-                                        </Grid>
+                                                <Grid item xs={5} alignContent="flex-end" style={{ textAlign: 'right' }}>
+                                                    {
+                                                        loadingCartValue ? <GreenLinearProgress variant="query" />
+                                                            : <>
+                                                                <Typography component="p" variant="h7" color="inherit" noWrap className={classes.title}>
+                                                                    Valor Total do Carrinho:
+                                                            </Typography>
+                                                                <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
+                                                                    R$ {cart.valor}
+                                                                </Typography>
+                                                            </>
+                                                    }
+                                                </Grid>
+                                            </Grid> : null
 
-                                        <Grid item xs={5} alignContent="flex-end" style={{textAlign:'right'}}>
-                                            <Typography component="p" variant="h7" color="inherit" noWrap className={classes.title}>
-                                                Valor Total do Carrinho:
-                                            </Typography>
-                                            <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
-                                                R$ 10.000,00
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
+                                    }
                                     {/* <Card className={classes.card}> */}
 
 
@@ -436,7 +599,9 @@ export default function NewCart() {
                             </Grid>
                         </Grid>
                         <Grid item xs={4}>
-                            <TableCart />
+                            {loadingCartTable ? <GreenLinearProgress variant="query" /> :
+                                <TableCart data={cart.itens} />
+                            }
                         </Grid>
                     </Grid>
                     <Box pt={4}>
@@ -448,7 +613,7 @@ export default function NewCart() {
                 open={snackOpen}
                 onClose={handleSnackClose}
                 TransitionComponent={SlideTransition}
-                message="I love snacks"
+                message={messageSnackBar}
                 action={
                     <React.Fragment>
                         {/* <Button color="secondary" size="small" onClick={handleClose}>
