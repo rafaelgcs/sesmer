@@ -26,6 +26,7 @@ import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Fab from '@material-ui/core/Fab';
+import LinearProgress from '@material-ui/core/LinearProgress';
 import MaterialTable from 'material-table';
 
 // Components
@@ -71,7 +72,79 @@ import SaveAlt from '@material-ui/icons/SaveAlt';
 import Search from '@material-ui/icons/Search';
 import ViewColumn from '@material-ui/icons/ViewColumn';
 
+//TEST
 
+
+// import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListItem from '@material-ui/core/ListItem';
+import FilledInput from '@material-ui/core/FilledInput';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
+import MaskedInput from 'react-text-mask';
+import PropTypes from 'prop-types';
+import Input from '@material-ui/core/Input';
+import NumberFormat from 'react-number-format';
+// import List from '@material-ui/core/List';
+// import Divider from '@material-ui/core/Divider';
+// import AppBar from '@material-ui/core/AppBar';
+// import Toolbar from '@material-ui/core/Toolbar';
+// import IconButton from '@material-ui/core/IconButton';
+// import Typography from '@material-ui/core/Typography';
+// import CloseIcon from '@material-ui/icons/Close';
+// import Slide from '@material-ui/core/Slide';
+
+
+function TextMaskCustom(props) {
+    const { inputRef, ...other } = props;
+
+    return (
+        <MaskedInput
+            {...other}
+            ref={ref => {
+                inputRef(ref ? ref.inputElement : null);
+            }}
+            mask={['(', /[1-9]/, /\d/, ')', ' ', /\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]}
+            placeholderChar={'\u2000'}
+            showMask
+        />
+    );
+}
+
+TextMaskCustom.propTypes = {
+    inputRef: PropTypes.func.isRequired,
+};
+
+function NumberFormatCustom(props) {
+    const { inputRef, onChange, ...other } = props;
+
+    return (
+        <NumberFormat
+            {...other}
+            getInputRef={inputRef}
+            onValueChange={values => {
+                onChange({
+                    target: {
+                        value: values.value,
+                    },
+                });
+            }}
+            thousandSeparator
+            isNumericString
+            prefix="R$"
+        />
+    );
+}
+
+NumberFormatCustom.propTypes = {
+    inputRef: PropTypes.func.isRequired,
+    onChange: PropTypes.func.isRequired,
+};
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+    return <Slide direction="up" ref={ref} {...props} />;
+});
 
 const drawerWidth = 240;
 
@@ -195,6 +268,29 @@ const useStyles = makeStyles(theme => ({
         width: 38,
     },
 }));
+const useStylesModal = makeStyles(theme => ({
+    appBar: {
+        position: 'relative',
+        backgroundColor: 'green'
+    },
+    title: {
+        marginLeft: theme.spacing(2),
+        flex: 1,
+    },
+    root: {
+        display: 'flex',
+        // flexWrap: 'wrap',
+    },
+    margin: {
+        // margin: theme.spacing(1),
+    },
+    withoutLabel: {
+        marginTop: theme.spacing(3),
+    },
+    textField: {
+        // width: 200,
+    },
+}));
 
 function SlideTransition(props) {
     return <Slide {...props} direction="up" />;
@@ -248,7 +344,17 @@ const tableIcons = {
     ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
 };
 
+const GreenLinearProgress = withStyles({
+    colorPrimary: {
+        backgroundColor: 'green',
+    },
+    barColorPrimary: {
+        backgroundColor: '#6ad65e',
+    },
+})(LinearProgress);
+
 function ClientsTable(props) {
+    const classes = useStylesModal();
     const [state, setState] = React.useState({
         columns: [
             { title: 'Nome', field: 'name' },
@@ -262,70 +368,168 @@ function ClientsTable(props) {
         ],
         data: [],
     });
+    const [updating, setUpdating] = React.useState(true);
     const [products, setProducts] = React.useState([]);
+    const [open, setOpen] = React.useState(false);
 
-  
+    const handleClickOpen = () => {
+        setOpen(true);
+    };
+
+    const handleClose = () => {
+        setOpen(false);
+    };
+
+    const reloadTable = async () => {
+        setUpdating(false);
+        const response = await api.get('/getProducts.php');
+
+        const returned = await JSON.stringify(response.data.products);
+        const products = await JSON.parse(returned);
+
+        setProducts(products);
+        setUpdating(true);
+    }
+
+    const updateRow = async (newData, oldData) => {
+        console.log("Chegou no updateRow!");
+
+        const response = await api.post('/updateProduct.php', newData);
+
+        return new Promise(resolve => {
+            console.log(response);
+
+            if (response.data.updated) {
+
+                resolve();
+                setState(prevState => {
+                    const data = [...prevState.data];
+                    data[data.indexOf(oldData)] = newData;
+                    return { ...prevState, data };
+                });
+                // reloadTable();
+                // setUpdating(true);
+            }
+            else {
+
+            }
+        });
+
+
+    }
+
 
     React.useEffect(() => {
 
-        if(products.length == 0){
+        if (products.length == 0) {
             (async () => {
                 const response = await api.get('/getProducts.php');
-    
+
                 const returned = await JSON.stringify(response.data.products);
                 const products = await JSON.parse(returned);
-    
+
                 setProducts(products);
             })();
         }
-        
+
     });
 
     return (
-        <MaterialTable
-            title="Todas as mercadorias"
-            localization={{ toolbar: { searchPlaceholder: 'Buscar' } }}
-            columns={state.columns}
-            data={products}
-            icons={tableIcons}
-            editable={{
-                onRowAdd: newData =>
-                    new Promise(resolve => {
-                        setTimeout(() => {
-                            resolve();
-                            setProducts(prevData =>{
-                                const data = [...prevData];
-                                data.push(newData);
-                                return { ...prevData, data};
-                            });
-                        }, 600);
-                    }),
-                onRowUpdate: (newData, oldData) =>
-                    new Promise(resolve => {
-                        setTimeout(() => {
-                            resolve();
-                            if (oldData) {
-                                setState(prevState => {
-                                    const data = [...prevState.data];
-                                    data[data.indexOf(oldData)] = newData;
-                                    return { ...prevState, data };
-                                });
-                            }
-                        }, 600);
-                    }),
-                onRowDelete: oldData =>
-                    new Promise(resolve => {
-                        setTimeout(() => {
-                            resolve();
-                            setState(prevState => {
-                                const data = [...prevState.data];
-                                data.splice(data.indexOf(oldData), 1);
-                                return { ...prevState, data };
-                            });
-                        }, 600);
-                    }),
-            }}
-        />
+        <>
+            {
+                updating
+                    ? <MaterialTable
+                        title="Todas as mercadorias"
+                        localization={{ toolbar: { searchPlaceholder: 'Buscar' } }}
+                        columns={state.columns}
+                        data={products}
+                        icons={tableIcons}
+                        onRowClick={(test, test2) => {
+                            console.log(test);
+                            console.log(test2);
+                            handleClickOpen();
+                        }}
+                    // onRowUpdate
+                    // onSelectionChange={reloadTable()}
+                    // onOrderChange={reloadTable()}
+                    // editable={{
+                    //     onRowAdd: newData =>
+                    //         new Promise(resolve => {
+                    //             setTimeout(() => {
+                    //                 resolve();
+                    //                 setProducts(prevData => {
+                    //                     const data = [...prevData];
+                    //                     data.push(newData);
+                    //                     return { ...prevData, data };
+                    //                 });
+                    //             }, 600);
+                    //         }),
+                    //     onRowUpdate: (newData, oldData) => { updateRow(newData, oldData); reloadTable() }
+                    //     ,
+                    //     onRowDelete: oldData =>
+                    //         new Promise(resolve => {
+                    //             setTimeout(() => {
+                    //                 resolve();
+                    //                 setState(prevState => {
+                    //                     const data = [...prevState.data];
+                    //                     data.splice(data.indexOf(oldData), 1);
+                    //                     return { ...prevState, data };
+                    //                 });
+                    //             }, 600);
+                    //         }),
+                    // }}
+                    />
+                    : <GreenLinearProgress variant="query" />
+            }
+
+            <Dialog fullScreen open={open} onClose={handleClose} TransitionComponent={Transition}>
+                <AppBar className={classes.appBar}>
+                    <Toolbar>
+                        <IconButton edge="start" color="inherit" onClick={handleClose} aria-label="close">
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h6" className={classes.title}>
+                            Sound
+                        </Typography>
+                        <Button autoFocus color="inherit" onClick={handleClose}>
+                            Salvar
+                        </Button>
+                    </Toolbar>
+                </AppBar>
+                <form>
+                    <FormControl>
+                        <InputLabel htmlFor="formatted-text-mask-input">react-text-mask</InputLabel>
+                        <Input
+                            // value={values.textmask}
+                            // onChange={handleChange('textmask')}
+                            id="formatted-text-mask-input"
+                            inputComponent={TextMaskCustom}
+                        />
+                    </FormControl>
+                    <FormControl>
+                        <TextField
+                            label="react-number-format"
+                            // value={values.numberformat}
+                            // onChange={handleChange('numberformat')}
+                            id="formatted-numberformat-input"
+                            InputProps={{
+                                inputComponent: NumberFormatCustom,
+                            }}
+                        />
+                    </FormControl>
+                </form>
+                <List>
+                    <ListItem button>
+                        <ListItemText primary="Phone ringtone" secondary="Titania" />
+                    </ListItem>
+                    <Divider />
+                    <ListItem button>
+                        <ListItemText primary="Default notification ringtone" secondary="Tethys" />
+                    </ListItem>
+                </List>
+            </Dialog>
+
+        </>
     );
 }
 

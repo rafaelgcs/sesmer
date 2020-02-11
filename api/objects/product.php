@@ -17,7 +17,7 @@ class Product
     public $p_entrada;
     public $p_saida;
     public $p_final;
-    public $stock;
+    // public $stock;
 
     // constructor
     public function __construct($db)
@@ -72,6 +72,65 @@ class Product
         return false;
     }
 
+    function update()
+    {
+        $query = "UPDATE ". $this->table_name . "
+            SET
+                cod = " . $this->cod . ",
+                name = '" . $this->name . "',
+                description =  '" . $this->description . "',
+                p_unit = " . $this->p_unit . ",
+                img = '" . $this->img . "',
+                p_entrada = " . $this->p_entrada . ",
+                p_saida = " . $this->p_saida . ",
+                p_final = " . $this->p_final . "
+            WHERE 
+                id = " . $this->id . "";
+
+        // $query = "UPDATE " . $this->table_name . "
+        // SET
+        //     name = :name,
+        //     description = :description,
+        //     p_unit = :p_unit,
+        //     img = :img,
+        //     p_entrada = :p_entrada,
+        //     p_saida = :p_saida,
+        //     p_final = :p_final
+
+        // WHERE id = :id";
+
+
+        $stmt = $this->conn->prepare($query);
+
+        $stmt->bindParam(1, $this->code);
+        $stmt->bindParam(2, $this->name);
+        $stmt->bindParam(3, $this->description);
+        $stmt->bindParam(4, $this->p_unit);
+        $stmt->bindParam(5, $this->img);
+        $stmt->bindParam(6, $this->p_entrada);
+        $stmt->bindParam(7, $this->p_saida);
+        $stmt->bindParam(8, $this->p_final);
+        $stmt->bindParam(9, $this->id);
+
+        $stmt->execute();
+
+        if ($stmt->rowCount() == 0) {
+            return json_encode(
+                array(
+                    "updated" => false,
+                    "query" => $query,
+                )
+            );
+        }
+
+        return json_encode(
+            array(
+                "updated" => true,
+                "query" => $query,
+            )
+        );
+    }
+
     function allProducts()
     {
         $query = "SELECT m.*,e.quantidade as stock,e.saidas 
@@ -85,31 +144,32 @@ class Product
         return $stmt;
     }
 
-    function productsByNameOrCode($code, $name){
-        if($code != null){
+    function productsByNameOrCode($code, $name)
+    {
+        if ($code != null) {
             $query = "SELECT m.*,e.quantidade as stock,e.saidas 
             FROM mercadorias as m, estoque as e 
             WHERE e.mercadoriaId = m.cod and m.cod = :code";
-    
+
             $stmt = $this->conn->prepare($query);
 
             $stmt->bindParam(':code', $code);
-    
+
             $stmt->execute();
-    
+
             // return false if email does not exist in the database
             return $stmt;
-        }else{
+        } else {
             $query = "SELECT m.*,e.quantidade as stock,e.saidas 
             FROM mercadorias as m, estoque as e 
             WHERE e.mercadoriaId = m.cod and m.name = '$name'";
-    
+
             $stmt = $this->conn->prepare($query);
 
             // $stmt->bindParam('?', utf8_encode($name));
-    
+
             $stmt->execute();
-    
+
             // return false if email does not exist in the database
             return $stmt;
         }
