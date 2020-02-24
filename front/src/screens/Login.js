@@ -64,10 +64,10 @@ export default function Login() {
         e.preventDefault();
         setOpen(true);
         // let response = await api.post('/userLogin.php',{email: email,password: pass});
-        await api.post('/userLogin.php', { email: email, password: pass })
+        await api.post('/login', { email: email, password: pass })
             .then((response) => {
-                // console.log(response);
-                if (response.data.logged) {
+                console.log(response);
+                if (response.data.success) {
                     login(JSON.stringify(response.data.user));
                     window.location.href = './';
                 } else {

@@ -131,8 +131,10 @@ function NumberFormatCustom(props) {
                 });
             }}
             thousandSeparator
+            // decimalSeparator
             isNumericString
             prefix="R$"
+            allowNegative={false}
         />
     );
 }
@@ -371,6 +373,8 @@ function ClientsTable(props) {
     const [updating, setUpdating] = React.useState(true);
     const [products, setProducts] = React.useState([]);
     const [open, setOpen] = React.useState(false);
+    const [selectedItem, setSelectedItem] = React.useState({});
+    const [editedItem, setEditedItem] = React.useState(false);
 
     const handleClickOpen = () => {
         setOpen(true);
@@ -378,11 +382,25 @@ function ClientsTable(props) {
 
     const handleClose = () => {
         setOpen(false);
+        if (editedItem) {
+            setUpdating(false);
+            reloadTable();
+            setEditedItem(true);
+        }
+    };
+
+    const saveNewItem = () => {
+        setOpen(false);
+        if (editedItem) {
+            setUpdating(false);
+
+            updateRow(selectedItem);
+        }
     };
 
     const reloadTable = async () => {
         setUpdating(false);
-        const response = await api.get('/getProducts.php');
+        const response = await api.get('/product/all');
 
         const returned = await JSON.stringify(response.data.products);
         const products = await JSON.parse(returned);
@@ -391,10 +409,53 @@ function ClientsTable(props) {
         setUpdating(true);
     }
 
-    const updateRow = async (newData, oldData) => {
+    const newRow = async (newData) => {
+        let sentData = {
+            name: newData.name,
+            cod: newData.cod,
+            p_unit: newData.p_unit,
+            p_entrada: newData.p_entrada,
+            p_saida: newData.p_saida,
+            p_final: newData.p_final,
+        }
+        const response = await api.post('/product/', sentData);
+
+        if (response.data.success) {
+            let includeStockItem = {
+                mercadoriaId: newData.cod,
+                quantidade: newData.stock,
+                ultima_data: new Date(),
+                saidas: newData.saidas,
+            };
+            const responseStock = await api.post('/stock/', includeStockItem);
+            if (responseStock.data.success) {
+
+                return new Promise((resolve, reject) => {
+                    resolve();
+                    reloadTable();
+                    setEditedItem(true);
+                });
+            } else {
+                return new Promise((resolve, reject) => {
+                    reject();
+                });
+            }
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                reject();
+            });
+
+        }
+
+
+    }
+
+
+    const updateRow = async (newData) => {
         console.log("Chegou no updateRow!");
 
-        const response = await api.post('/updateProduct.php', newData);
+        const response = await api.post('/product/update', newData);
 
         return new Promise(resolve => {
             console.log(response);
@@ -402,11 +463,13 @@ function ClientsTable(props) {
             if (response.data.updated) {
 
                 resolve();
-                setState(prevState => {
-                    const data = [...prevState.data];
-                    data[data.indexOf(oldData)] = newData;
-                    return { ...prevState, data };
-                });
+                reloadTable();
+                setEditedItem(true);
+                // setState(prevState => {
+                //     const data = [...prevState.data];
+                //     data[data.indexOf(oldData)] = newData;
+                //     return { ...prevState, data };
+                // });
                 // reloadTable();
                 // setUpdating(true);
             }
@@ -423,11 +486,10 @@ function ClientsTable(props) {
 
         if (products.length == 0) {
             (async () => {
-                const response = await api.get('/getProducts.php');
+                const response = await api.get('/product/all');
 
                 const returned = await JSON.stringify(response.data.products);
                 const products = await JSON.parse(returned);
-
                 setProducts(products);
             })();
         }
@@ -444,40 +506,31 @@ function ClientsTable(props) {
                         columns={state.columns}
                         data={products}
                         icons={tableIcons}
-                        onRowClick={(test, test2) => {
-                            console.log(test);
-                            console.log(test2);
+                        onRowClick={(event, item) => {
+                            console.log(item);
+                            setSelectedItem(item);
                             handleClickOpen();
                         }}
-                    // onRowUpdate
-                    // onSelectionChange={reloadTable()}
-                    // onOrderChange={reloadTable()}
-                    // editable={{
-                    //     onRowAdd: newData =>
-                    //         new Promise(resolve => {
-                    //             setTimeout(() => {
-                    //                 resolve();
-                    //                 setProducts(prevData => {
-                    //                     const data = [...prevData];
-                    //                     data.push(newData);
-                    //                     return { ...prevData, data };
-                    //                 });
-                    //             }, 600);
-                    //         }),
-                    //     onRowUpdate: (newData, oldData) => { updateRow(newData, oldData); reloadTable() }
-                    //     ,
-                    //     onRowDelete: oldData =>
-                    //         new Promise(resolve => {
-                    //             setTimeout(() => {
-                    //                 resolve();
-                    //                 setState(prevState => {
-                    //                     const data = [...prevState.data];
-                    //                     data.splice(data.indexOf(oldData), 1);
-                    //                     return { ...prevState, data };
-                    //                 });
-                    //             }, 600);
-                    //         }),
-                    // }}
+                        // onRowUpdate
+                        // onSelectionChange={reloadTable()}
+                        // onOrderChange={reloadTable()}
+                        editable={{
+                            onRowAdd: async newData =>
+                                await newRow(newData),
+                            //     onRowUpdate: (newData, oldData) => { updateRow(newData, oldData); reloadTable() }
+                            //     ,
+                            //     onRowDelete: oldData =>
+                            //         new Promise(resolve => {
+                            //             setTimeout(() => {
+                            //                 resolve();
+                            //                 setState(prevState => {
+                            //                     const data = [...prevState.data];
+                            //                     data.splice(data.indexOf(oldData), 1);
+                            //                     return { ...prevState, data };
+                            //                 });
+                            //             }, 600);
+                            //         }),
+                        }}
                     />
                     : <GreenLinearProgress variant="query" />
             }
@@ -489,15 +542,15 @@ function ClientsTable(props) {
                             <CloseIcon />
                         </IconButton>
                         <Typography variant="h6" className={classes.title}>
-                            Sound
+                            {selectedItem.name}
                         </Typography>
-                        <Button autoFocus color="inherit" onClick={handleClose}>
+                        <Button autoFocus color="inherit" onClick={saveNewItem}>
                             Salvar
                         </Button>
                     </Toolbar>
                 </AppBar>
-                <form>
-                    <FormControl>
+                <form className="row" style={{ padding: 20 }}>
+                    {/* <FormControl>
                         <InputLabel htmlFor="formatted-text-mask-input">react-text-mask</InputLabel>
                         <Input
                             // value={values.textmask}
@@ -505,28 +558,104 @@ function ClientsTable(props) {
                             id="formatted-text-mask-input"
                             inputComponent={TextMaskCustom}
                         />
-                    </FormControl>
-                    <FormControl>
-                        <TextField
-                            label="react-number-format"
-                            // value={values.numberformat}
-                            // onChange={handleChange('numberformat')}
-                            id="formatted-numberformat-input"
-                            InputProps={{
-                                inputComponent: NumberFormatCustom,
-                            }}
-                        />
-                    </FormControl>
+                    </FormControl> */}
+                    <Grid container spacing={3} style={{ marginBottom: 20 }}>
+                        <Grid item xs={6}>
+                            <FormControl style={{ width: '100%' }}>
+                                <TextField
+                                    label="Nome"
+                                    defaultValue={selectedItem.name}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.name = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <FormControl style={{ width: '100%' }}>
+                                <TextField
+                                    label="Descrição"
+                                    defaultValue={selectedItem.description}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.description = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
+                                />
+                            </FormControl>
+                        </Grid>
+                    </Grid>
+                    <Grid container spacing={3} style={{ marginBottom: 20 }}>
+                        <Grid item xs={6}>
+                            <FormControl className="col-3" style={{ width: '24%', marginRight: '1%' }}>
+                                <TextField
+                                    label="P. Entrada"
+                                    defaultValue={selectedItem.p_entrada}
+                                    // value={values.numberformat}
+                                    // onChange={handleChange('numberformat')}
+                                    id="formatted-numberformat-input"
+                                    InputProps={{
+                                        inputComponent: NumberFormatCustom,
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl className="col-3" style={{ width: '24%', marginRight: '1%' }}>
+                                <TextField
+                                    label="P. Saída"
+                                    defaultValue={selectedItem.p_saida}
+                                    // value={values.numberformat}
+                                    // onChange={handleChange('numberformat')}
+                                    id="formatted-numberformat-input"
+                                    InputProps={{
+                                        inputComponent: NumberFormatCustom,
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl className="col-3" style={{ width: '24%', marginRight: '1%' }}>
+                                <TextField
+                                    label="P. Unitário"
+                                    defaultValue={selectedItem.p_unit}
+                                    // value={values.numberformat}
+                                    // onChange={handleChange('numberformat')}
+                                    id="formatted-numberformat-input"
+                                    InputProps={{
+                                        inputComponent: NumberFormatCustom,
+                                    }}
+                                />
+                            </FormControl>
+                            <FormControl className="col-3" style={{ width: '24%', }}>
+                                <TextField
+                                    label="P. Final"
+                                    defaultValue={selectedItem.p_final}
+                                    // value={values.numberformat}
+                                    // onChange={handleChange('numberformat')}
+                                    id="formatted-numberformat-input"
+                                    InputProps={{
+                                        inputComponent: NumberFormatCustom,
+                                    }}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <FormControl className="col-6" style={{ width: '49%', marginRight: '1%' }}>
+                                <TextField
+                                    label="Código"
+                                    defaultValue={selectedItem.cod}
+                                />
+                            </FormControl>
+                            <FormControl className="col-6" style={{ width: '49%', marginLeft: '1%' }}>
+                                <TextField
+                                    label="Estoque"
+                                    defaultValue={selectedItem.stock}
+                                />
+                            </FormControl>
+                        </Grid>
+                    </Grid>
                 </form>
-                <List>
-                    <ListItem button>
-                        <ListItemText primary="Phone ringtone" secondary="Titania" />
-                    </ListItem>
-                    <Divider />
-                    <ListItem button>
-                        <ListItemText primary="Default notification ringtone" secondary="Tethys" />
-                    </ListItem>
-                </List>
             </Dialog>
 
         </>
