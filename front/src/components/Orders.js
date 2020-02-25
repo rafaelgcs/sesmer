@@ -8,6 +8,8 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Title from './Title';
 
+import api from '../services/api';
+
 // Generate Order Data
 function createData(id, date, name, shipTo, paymentMethod, amount) {
   return { id, date, name, shipTo, paymentMethod, amount };
@@ -33,6 +35,37 @@ const useStyles = makeStyles(theme => ({
 
 export default function Orders() {
   const classes = useStyles();
+  const [vendas, setVendas] = React.useState([]);
+
+  React.useEffect(() => {
+
+    if (vendas.length == 0) {
+      (async () => {
+        const response = await api.get('/sale/recents');
+
+        const returned = await JSON.stringify(response.data.vendas);
+        const vendas = await JSON.parse(returned);
+
+        let saveVendas = [];
+
+        vendas.map((item) => {
+          saveVendas.push({
+            id: item.id,
+            data: `${item.dia_venda}/${item.mes_venda}/${item.ano_venda} ${item.hora_venda}`,
+            cliente: item.cliente,
+            codigoVenda: item.id,
+            metodo: item.metodo,
+            valor: item.valor
+          });
+        });
+
+        setVendas(vendas);
+      })();
+    }
+
+  });
+
+
   return (
     <React.Fragment>
       <Title>Vendas Recentes</Title>
@@ -47,20 +80,20 @@ export default function Orders() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map(row => (
+          {vendas.map(row => (
             <TableRow key={row.id}>
-              <TableCell>{row.date}</TableCell>
+              <TableCell>{row.data}</TableCell>
               <TableCell>{row.name}</TableCell>
-              <TableCell>{row.shipTo}</TableCell>
-              <TableCell>{row.paymentMethod}</TableCell>
-              <TableCell align="right">{row.amount}</TableCell>
+              <TableCell>{row.cliente}</TableCell>
+              <TableCell>{row.metodo}</TableCell>
+              <TableCell align="right">{row.valor}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
       <div className={classes.seeMore}>
         <Link color="primary" href="#" onClick={preventDefault}>
-          See more orders
+          Veja todas as vendas...
         </Link>
       </div>
     </React.Fragment>

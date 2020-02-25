@@ -375,7 +375,10 @@ function ClientsTable(props) {
     const [open, setOpen] = React.useState(false);
     const [selectedItem, setSelectedItem] = React.useState({});
     const [editedItem, setEditedItem] = React.useState(false);
+    const [snackOpen, setSnackOpen] = React.useState(false);
 
+    const openSnack = props.openSnack;
+    const setAlertMessage = props.snackBarMessage;
     const handleClickOpen = () => {
         setOpen(true);
     };
@@ -388,7 +391,14 @@ function ClientsTable(props) {
             setEditedItem(true);
         }
     };
+    const deleteItem = () => {
+        setOpen(false);
+        // if (editedItem) {
+        setUpdating(false);
 
+        deleteRow(selectedItem);
+        // }
+    };
     const saveNewItem = () => {
         setOpen(false);
         if (editedItem) {
@@ -454,30 +464,87 @@ function ClientsTable(props) {
 
     const updateRow = async (newData) => {
         console.log("Chegou no updateRow!");
+        console.log(newData);
+        let product = {
+            id: newData.id,
+            cod: newData.cod,
+            name: newData.name,
+            description: newData.description,
+            p_unit: newData.p_unit,
+            img: newData.img,
+            p_entrada: newData.p_entrada,
+            p_saida: newData.p_saida,
+            p_final: newData.p_final,
+        }
 
-        const response = await api.post('/product/update', newData);
+        const response = await api.post('/product/update', product);
+        if (response.data.success) {
+            let stockToUpdate = {
+                mercadoriaId: newData.cod,
+                quantidade: newData.stock,
+                ultima_data: new Date(),
+                saidas: newData.saidas
+            };
+            const response2 = await api.post('/stock/update', stockToUpdate);
 
-        return new Promise(resolve => {
-            console.log(response);
+            return new Promise((resolve, reject) => {
+                if (response2.data.success) {
+                    resolve();
+                    reloadTable();
+                    setEditedItem(true);
+                    setAlertMessage("O produto foi atualizado com sucesso!");
+                    openSnack(true);
+                } else {
+                    reject();
+                    reloadTable();
+                    setEditedItem(true);
+                    setAlertMessage("O produto foi atualizado, mas não foi possível atualizar o estoque!");
+                    openSnack(true);
+                }
 
-            if (response.data.updated) {
-
-                resolve();
+            });
+        }
+        else {
+            return new Promise((resolve, reject) => {
+                reject();
                 reloadTable();
                 setEditedItem(true);
-                // setState(prevState => {
-                //     const data = [...prevState.data];
-                //     data[data.indexOf(oldData)] = newData;
-                //     return { ...prevState, data };
-                // });
-                // reloadTable();
-                // setUpdating(true);
-            }
-            else {
+                setAlertMessage("O produto foi atualizado, mas não foi possível atualizar o estoque!");
+                openSnack(true);
 
-            }
-        });
+            });
+        }
+    }
 
+    const deleteRow = async (dataToDelete) => {
+        console.log("Entrou no delete");
+        let id = dataToDelete.id;
+        let cod = dataToDelete.cod;
+
+        const response = await api.get(`/product/delete/${id}`);
+
+        if (response.data.success) {
+            const response2 = await api.get(`/stock/delete/${cod}`);
+
+            if (response2.data.success) {
+                reloadTable();
+                setEditedItem(true);
+                setAlertMessage("O produto foi deletado com sucesso!");
+                openSnack(true);
+            } else {
+                reloadTable();
+                setEditedItem(true);
+                setAlertMessage("O produto foi deletado, mas não foi possível deletar o estoque!");
+                openSnack(true);
+            }
+
+        }
+        else {
+            reloadTable();
+            setEditedItem(true);
+            setAlertMessage("O produto não foi deletado!");
+            openSnack(true);
+        }
 
     }
 
@@ -544,6 +611,9 @@ function ClientsTable(props) {
                         <Typography variant="h6" className={classes.title}>
                             {selectedItem.name}
                         </Typography>
+                        <Button autoFocus color="inherit" onClick={deleteItem}>
+                            DELETAR
+                        </Button>
                         <Button autoFocus color="inherit" onClick={saveNewItem}>
                             Salvar
                         </Button>
@@ -597,6 +667,12 @@ function ClientsTable(props) {
                                     defaultValue={selectedItem.p_entrada}
                                     // value={values.numberformat}
                                     // onChange={handleChange('numberformat')}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.p_entrada = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                     id="formatted-numberformat-input"
                                     InputProps={{
                                         inputComponent: NumberFormatCustom,
@@ -609,6 +685,12 @@ function ClientsTable(props) {
                                     defaultValue={selectedItem.p_saida}
                                     // value={values.numberformat}
                                     // onChange={handleChange('numberformat')}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.p_saida = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                     id="formatted-numberformat-input"
                                     InputProps={{
                                         inputComponent: NumberFormatCustom,
@@ -621,6 +703,12 @@ function ClientsTable(props) {
                                     defaultValue={selectedItem.p_unit}
                                     // value={values.numberformat}
                                     // onChange={handleChange('numberformat')}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.p_unit = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                     id="formatted-numberformat-input"
                                     InputProps={{
                                         inputComponent: NumberFormatCustom,
@@ -633,6 +721,12 @@ function ClientsTable(props) {
                                     defaultValue={selectedItem.p_final}
                                     // value={values.numberformat}
                                     // onChange={handleChange('numberformat')}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.p_final = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                     id="formatted-numberformat-input"
                                     InputProps={{
                                         inputComponent: NumberFormatCustom,
@@ -645,12 +739,24 @@ function ClientsTable(props) {
                                 <TextField
                                     label="Código"
                                     defaultValue={selectedItem.cod}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.cod = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                 />
                             </FormControl>
                             <FormControl className="col-6" style={{ width: '49%', marginLeft: '1%' }}>
                                 <TextField
                                     label="Estoque"
                                     defaultValue={selectedItem.stock}
+                                    onChange={(e) => {
+                                        let edited = selectedItem;
+                                        edited.stock = e.target.value;
+                                        setSelectedItem(edited);
+                                        setEditedItem(true);
+                                    }}
                                 />
                             </FormControl>
                         </Grid>
@@ -670,6 +776,7 @@ export default function StockPage() {
     const [openAutoComplete, setOpenAutoComplete] = React.useState(false);
     const [options, setOptions] = React.useState([]);
     const loadingAutoComplete = openAutoComplete && options.length === 0;
+    const [alertMessage, setAlertMessage] = React.useState("");
 
 
     const handleDrawerOpen = () => {
@@ -771,7 +878,7 @@ export default function StockPage() {
                 <Container maxWidth="lg" className={classes.container}>
                     <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <ClientsTable />
+                            <ClientsTable openSnack={(e) => setSnackOpen(e)} snackBarMessage={(e) => setAlertMessage(e)} />
                         </Grid>
                     </Grid>
                     <Box pt={4}>
@@ -783,7 +890,7 @@ export default function StockPage() {
                 open={snackOpen}
                 onClose={handleSnackClose}
                 TransitionComponent={SlideTransition}
-                message="I love snacks"
+                message={alertMessage}
                 action={
                     <React.Fragment>
                         {/* <Button color="secondary" size="small" onClick={handleClose}>

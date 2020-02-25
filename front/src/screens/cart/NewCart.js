@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import clsx from 'clsx';
 import { makeStyles, withStyles, useTheme } from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -30,6 +30,10 @@ import LinearProgress from '@material-ui/core/LinearProgress';
 import api from '../../services/api';
 import { cart as localCart, restartCart as restartLocalCart, getLocalCart } from '../../services/auth';
 
+import Dialog from '@material-ui/core/Dialog';
+import FormControl from '@material-ui/core/FormControl';
+import MaterialTable from 'material-table';
+
 // Components
 import TableCart from '../../components/TableCart';
 import { logout } from '../../services/auth';
@@ -39,6 +43,22 @@ import Deposits from '../../components/Deposits';
 import Orders from '../../components/Orders';
 import Footer from '../../components/Footer';
 
+
+
+// // Icons
+// import MenuIcon from '@material-ui/icons/Menu';
+// import Settings from '@material-ui/icons/Settings';
+// import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
+// import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+// import NotificationsIcon from '@material-ui/icons/Notifications';
+// import CloseIcon from '@material-ui/icons/Close';
+// import SearchIcon from '@material-ui/icons/Search';
+// import DirectionsIcon from '@material-ui/icons/Directions';
+// import NavigationIcon from '@material-ui/icons/Navigation';
+// import SkipPreviousIcon from '@material-ui/icons/SkipPrevious';
+// import PlayArrowIcon from '@material-ui/icons/PlayArrow';
+// import SkipNextIcon from '@material-ui/icons/SkipNext';
+// import DoneIcon from '@material-ui/icons/Done';
 
 
 // Icons
@@ -56,6 +76,22 @@ import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SkipNextIcon from '@material-ui/icons/SkipNext';
 import DoneIcon from '@material-ui/icons/Done';
 import AddShoppingCartIcon from '@material-ui/icons/AddShoppingCart';
+import AddBox from '@material-ui/icons/AddBox';
+import ArrowUpward from '@material-ui/icons/ArrowUpward';
+import Check from '@material-ui/icons/Check';
+import ChevronLeft from '@material-ui/icons/ChevronLeft';
+import ChevronRight from '@material-ui/icons/ChevronRight';
+import Clear from '@material-ui/icons/Clear';
+import DeleteOutline from '@material-ui/icons/DeleteOutline';
+import Edit from '@material-ui/icons/Edit';
+import FilterList from '@material-ui/icons/FilterList';
+import FirstPage from '@material-ui/icons/FirstPage';
+import LastPage from '@material-ui/icons/LastPage';
+import Remove from '@material-ui/icons/Remove';
+import SaveAlt from '@material-ui/icons/SaveAlt';
+import Search from '@material-ui/icons/Search';
+import ViewColumn from '@material-ui/icons/ViewColumn';
+
 
 
 const drawerWidth = 240;
@@ -222,10 +258,23 @@ const CssTextField = withStyles({
     },
 })(TextField);
 
+const TransitionComponent = React.forwardRef(function Transition(props, ref) {
+    return <Slide direction="up" ref={ref} {...props} />;
+});
+
+
 export default function NewCart() {
+
+    const [users, setUsers] = React.useState([]);
+
+    const TableColumns = [
+        { title: 'Nome', field: 'name' },
+        { title: 'E-mail', field: 'email' },
+    ];
+
     const classes = useStyles();
     const theme = useTheme();
-    const [loadingSearch, setLoadingSearch] = React.useState(true);
+    const [loadingSearch, setLoadingSearch] = React.useState(false);
     const [loadingCartTable, setLoadingCartTable] = React.useState(true);
     const [loadingCartValue, setLoadingCartValue] = React.useState(true);
     const [cart, setCart] = React.useState({
@@ -234,25 +283,58 @@ export default function NewCart() {
         valor: 0.0,
         status: 0,
         showItemSelected: false,
+        cliente: null,
     });
+    const [selectedClient, setSelectedClient] = React.useState(false);
     const [open, setOpen] = React.useState(true);
     const [snackOpen, setSnackOpen] = React.useState(false);
     const [messageSnackBar, setMessageSnackBar] = React.useState("");
     const [openAutoComplete, setOpenAutoComplete] = React.useState(false);
     const [options, setOptions] = React.useState([]);
+    const [products, setProducts] = React.useState([]);
     const [valueProductSearch, setValueProductSearch] = React.useState('');
     const loadingAutoComplete = openAutoComplete && options.length === 0;
+    const [openDialog, setOpenDialog] = React.useState(false);
+    const getProductCodByName = (name) => {
+        let id = null;
+        products.map((item) => {
+            if (name == item.name) {
+                console.log("Algum entrou");
+                id = item.id;
+            }
+        });
+
+        return id;
+    }
 
     const escolherItem = async (e) => {
         e.preventDefault();
-        setLoadingSearch(true);
-        const response = await api.get(`/getProductsByNameOrCode.php?name=${valueProductSearch}`);
-        // React.useEffect(() => {
-        let newCart = cart;
-        newCart.itemSelected = response.data.products[0];
-        newCart.showItemSelected = true;
-        setCart(newCart);
-        setLoadingSearch(false);
+        // startSearch();
+        // setLo
+        let id = getProductCodByName(valueProductSearch);
+        // console.log(id);
+        if (id != null) {
+
+            setLoadingSearch(true);
+            const response = await api.get(`/product/${id}`);
+            // React.useEffect(() => {
+            let newCart = cart;
+            console.log(response);
+            if (response.data.success) {
+                console.log("entrou no success");
+                // resetCart();
+                newCart.itemSelected = response.data.product;
+                newCart.showItemSelected = true;
+                setCart(newCart);
+                setLoadingSearch(false);
+            }
+        }
+        else {
+            setMessageSnackBar("Para efetuar uma pesquisa é necessário digitar algo no campo de busca!");
+            setSnackOpen(true);
+        }
+        //     return true;
+        // });
     };
 
     const verifyItemInCart = (obj) => {
@@ -265,6 +347,12 @@ export default function NewCart() {
         return true;
     };
 
+    const startSearch = () => {
+        setLoadingCartTable(true);
+        setLoadingCartValue(true);
+        setLoadingSearch(true);
+    }
+
     const resetCart = async () => {
         setLoadingCartTable(true);
         setLoadingCartValue(true);
@@ -275,6 +363,8 @@ export default function NewCart() {
         newCart.itens = [];
         newCart.showItemSelected = false;
         newCart.valor = 0.0;
+        newCart.cliente = null;
+        setSelectedClient(false);
         setCart(newCart);
         setValueProductSearch("");
         restartLocalCart();
@@ -285,6 +375,7 @@ export default function NewCart() {
         setLoadingCartTable(false);
         setLoadingCartValue(false);
         setLoadingSearch(false);
+        setSelectedClient(false);
     };
 
     const calcNewCartValue = (editCart) => {
@@ -316,12 +407,12 @@ export default function NewCart() {
                 setCart(newCart);
             } else {
                 let item = newCart.itens.filter(item => item.obj.id == newCart.itemSelected.id)[0];
-                if(item.quantidade < item.obj.stock){
+                if (item.quantidade < item.obj.stock) {
                     item.quantidade += 1;
                     item.valor = parseFloat(parseFloat(newCart.itemSelected.p_final) + parseFloat(item.valor)).toFixed(2);
                     newCart.valor = parseFloat(calcNewCartValue(newCart).toFixed(2));
                     setCart(newCart);
-                }else{
+                } else {
                     setMessageSnackBar("O item não está mais em estoque...");
                     setSnackOpen(true);
                 }
@@ -333,6 +424,17 @@ export default function NewCart() {
         setLoadingCartValue(false);
     };
 
+    const finalizarCompra = async () => {
+        let dateNow = new Date();
+        // setOpenDialog(true);
+        console.log(cart);
+    };
+    const enableToSelectClient = async () => {
+        // let dateNow = new Date();
+        setOpenDialog(true);
+        // console.log(cart);
+    };
+
     const handleDrawerOpen = () => {
         setOpen(true);
     };
@@ -342,6 +444,15 @@ export default function NewCart() {
     const handleSnackClose = () => {
         setSnackOpen(!snackOpen);
     };
+
+    const handleCloseDialog = () => {
+        setOpenDialog(false);
+    }
+
+    const TransitionDialog = React.forwardRef(function Transition(props, ref) {
+        return <Slide direction="up" ref={ref} {...props} />;
+    });
+
     const _doLoggout = () => {
         logout();
         window.location.href = './';
@@ -356,10 +467,11 @@ export default function NewCart() {
         }
 
         (async () => {
-            const response = await api.get('/getProducts.php');
+            const response = await api.get('/product/all');
 
-            const returned = await JSON.stringify(response.data.products);
+            const returned = JSON.stringify(response.data.products);
             const products = await JSON.parse(returned);
+            setProducts(products);
             if (active) {
                 setOptions(Object.keys(products).map(key => products[key]));
             }
@@ -384,22 +496,54 @@ export default function NewCart() {
             try {
                 newCart = getLocalCart();
             } catch{
-                console.log("O catch funcionou e caiu nele haha");
+                // console.log("O catch funcionou e caiu nele haha");
             }
-            console.log(newCart);
             if (newCart != null) {
-
-
                 setCart(JSON.parse(newCart));
+                if (JSON.parse(newCart).cliente == null) {
+                    console.log(newCart);
+                    setSelectedClient(false);
+                } else {
+                    console.log(newCart);
+                    setSelectedClient(true);
+                }
             }
 
             setLoadingCartTable(false);
             setLoadingCartValue(false);
             setLoadingSearch(false);
         }
+
+        if (users.length == 0) {
+            (async () => {
+                const response = await api.get('/cliente/all');
+
+                const returned = await JSON.stringify(response.data.clientes);
+                const clientes = await JSON.parse(returned);
+                setUsers(clientes);
+            })();
+        }
     });
 
-
+    const tableIcons = {
+        Add: forwardRef((props, ref) => <AddBox {...props} ref={ref} />),
+        Check: forwardRef((props, ref) => <Check {...props} ref={ref} />),
+        Clear: forwardRef((props, ref) => <Clear {...props} ref={ref} />),
+        Delete: forwardRef((props, ref) => <DeleteOutline {...props} ref={ref} />),
+        DetailPanel: forwardRef((props, ref) => <ChevronRight {...props} ref={ref} />),
+        Edit: forwardRef((props, ref) => <Edit {...props} ref={ref} />),
+        Export: forwardRef((props, ref) => <SaveAlt {...props} ref={ref} />),
+        Filter: forwardRef((props, ref) => <FilterList {...props} ref={ref} />),
+        FirstPage: forwardRef((props, ref) => <FirstPage {...props} ref={ref} />),
+        LastPage: forwardRef((props, ref) => <LastPage {...props} ref={ref} />),
+        NextPage: forwardRef((props, ref) => <ChevronRight {...props} ref={ref} />),
+        PreviousPage: forwardRef((props, ref) => <ChevronLeft {...props} ref={ref} />),
+        ResetSearch: forwardRef((props, ref) => <Clear {...props} ref={ref} />),
+        Search: forwardRef((props, ref) => <Search {...props} ref={ref} />),
+        SortArrow: forwardRef((props, ref) => <ArrowUpward {...props} ref={ref} />),
+        ThirdStateCheck: forwardRef((props, ref) => <Remove {...props} ref={ref} />),
+        ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
+    };
     return (
         <div className={classes.root}>
             <CssBaseline />
@@ -498,11 +642,6 @@ export default function NewCart() {
                                         />
                                     )}
                                 />
-                                {/* <InputBase
-                                    className={classes.input}
-                                    placeholder="Search Google Maps"
-                                    inputProps={{ 'aria-label': 'search google maps' }}
-                                /> */}
                                 <IconButton type="submit" className={classes.iconButton2} aria-label="search">
                                     <SearchIcon />
                                 </IconButton>
@@ -540,15 +679,6 @@ export default function NewCart() {
                                                         <Typography variant="subtitle1" color="textSecondary">
                                                             - Estoque: {cart.itemSelected.stock}
                                                         </Typography>
-                                                        {/* <IconButton aria-label="previous">
-                                                        {theme.direction === 'rtl' ? <SkipNextIcon /> : <SkipPreviousIcon />}
-                                                    </IconButton>
-                                                    <IconButton aria-label="play/pause">
-                                                        <PlayArrowIcon className={classes.playIcon} />
-                                                    </IconButton>
-                                                    <IconButton aria-label="next">
-                                                        {theme.direction === 'rtl' ? <SkipPreviousIcon /> : <SkipNextIcon />}
-                                                    </IconButton> */}
                                                     </div>
                                                 </div>
                                                 <Button onClick={() => insertItemInCart()} startIcon={<AddShoppingCartIcon />} variant="contained">Adicionar ao Carrinho</Button>
@@ -561,40 +691,42 @@ export default function NewCart() {
                                 </Grid>
                                 <Grid item xs={12}>
                                     {
-                                        cart.itens.length > 0 ?
-                                            <Grid container justify="space-between" spacing={5} >
-                                                <Grid item xs={7} >
-                                                    <Fab className="mr-2" variant="extended" style={{ backgroundColor: 'green' }} color="primary" aria-label="add">
-                                                        <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} />
-                                                        Finalizar Venda
-                                                </Fab>
-                                                    <Fab onClick={() => resetCart()} color="primary" style={{ backgroundColor: 'red', marginLeft: 10 }} variant="extended" aria-label="edit">
-                                                        Apagar Carrinho
+                                        cart.itens.length > 0 &&
+                                        <Grid container justify="space-between" spacing={5} >
+                                            <Grid item xs={7} >
+                                                {
+                                                    selectedClient ?
+                                                        <Fab onClick={() => finalizarCompra()} className="mr-2" variant="extended" style={{ backgroundColor: 'green' }} color="primary" aria-label="add">
+                                                            <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} />
+                                                            Finalizar Venda
+                                                        </Fab>
+                                                        : <Fab onClick={() => enableToSelectClient()} className="mr-2" variant="extended" style={{ backgroundColor: 'green' }} color="primary" aria-label="add">
+                                                            {/* <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} /> */}
+                                                            Selecionar Cliente
+                                                        </Fab>
+                                                }
+
+                                                <Fab onClick={() => resetCart()} color="primary" style={{ backgroundColor: 'red', marginLeft: 10 }} variant="extended" aria-label="edit">
+                                                    Apagar Carrinho
                                                 </Fab>
 
-                                                </Grid>
+                                            </Grid>
 
-                                                <Grid item xs={5} alignContent="flex-end" style={{ textAlign: 'right' }}>
-                                                    {
-                                                        loadingCartValue ? <GreenLinearProgress variant="query" />
-                                                            : <>
-                                                                <Typography component="p" variant="h7" color="inherit" noWrap className={classes.title}>
-                                                                    Valor Total do Carrinho:
+                                            <Grid item xs={5} alignContent="flex-end" style={{ textAlign: 'right' }}>
+                                                {
+                                                    loadingCartValue ? <GreenLinearProgress variant="query" />
+                                                        : <>
+                                                            <Typography component="p" variant="h7" color="inherit" noWrap className={classes.title}>
+                                                                Valor Total do Carrinho:
                                                             </Typography>
-                                                                <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
-                                                                    R$ {cart.valor}
-                                                                </Typography>
-                                                            </>
-                                                    }
-                                                </Grid>
-                                            </Grid> : null
-
+                                                            <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
+                                                                R$ {cart.valor}
+                                                            </Typography>
+                                                        </>
+                                                }
+                                            </Grid>
+                                        </Grid>
                                     }
-                                    {/* <Card className={classes.card}> */}
-
-
-
-                                    {/* </Card> */}
                                 </Grid>
                             </Grid>
                         </Grid>
@@ -609,6 +741,48 @@ export default function NewCart() {
                     </Box>
                 </Container>
             </main>
+            <Dialog open={openDialog} onClose={handleCloseDialog} TransitionComponent={TransitionComponent}>
+                <AppBar className={classes.appBar}>
+                    <Toolbar>
+                        <IconButton edge="start" color="inherit" onClick={handleCloseDialog} aria-label="close">
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h6" className={classes.title}>
+                            {/* {selectedItem.name} */}
+                            Selecione o Cliente para a venda
+                        </Typography>
+                        {/* <Button autoFocus color="inherit" onClick={deleteItem}>
+                            DELETAR
+                        </Button>
+                        <Button autoFocus color="inherit" onClick={saveNewItem}>
+                            Salvar
+                        </Button> */}
+                    </Toolbar>
+                </AppBar>
+                <Fab onClick={() => window.location.href = "../clientes"} variant="extended" style={{ borderRadius: 0, backgroundColor: 'green' }} color="primary" aria-label="add">
+                    {/* <DoneIcon style={{ marginRight: 10 }} className={classes.extendedIcon} /> */}
+                    Adicionar Cliente Novo
+                </Fab>
+                <MaterialTable
+                    title=""
+                    localization={{ toolbar: { searchPlaceholder: 'Buscar' } }}
+                    columns={TableColumns}
+                    data={users}
+                    icons={tableIcons}
+                    onRowClick={(event, item) => {
+                        let newCart = cart;
+                        newCart.cliente = item;
+
+                        setCart(newCart);
+                        localCart(JSON.stringify(newCart));
+                        setOpenDialog(false);
+                        setSelectedClient(true);
+                        // console.log(item);
+                        // console.log(cart);
+                    }}
+                />
+            </Dialog>
+
             <Snackbar
                 open={snackOpen}
                 onClose={handleSnackClose}
