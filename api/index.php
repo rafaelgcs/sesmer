@@ -1,20 +1,11 @@
 <?php
 
-// header("Access-Control-Allow-Origin: *");
-// header("Access-Control-Allow-Headers: access");
-// header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
-// header("Access-Control-Allow-Credentials: true");
-
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
-// include './controllers/User.php';
-
 require 'vendor/autoload.php';
-// require 'config/database.php';
-
-// $conn = new \PDO('mysql:host=localhost;dbname=sesmer', 'root', 'pass');
-$conn = new \PDO('mysql:host=localhost;dbname=ejcetc44_sesmer', 'ejcetc44_sesmer', 'sesmerpassword');
+// $conn = new \PDO('mysql:host=localhost;dbname=sesmer_db', 'root', '');
+$conn = new \PDO('mysql:host=localhost;dbname=db_name', 'db_user', 'db_user_password');
 
 $config = [
     'templates.path' => 'templates',
@@ -25,10 +16,6 @@ $config = [
 ];
 
 $app = new \Slim\App($config);
-
-// $app->options('/{routes:.+}', function ($request, $response, $args) {
-//     return $response;
-// });
 
 $app->add(function ($req, $res, $next) {
     $response = $next($req, $res);
@@ -63,23 +50,19 @@ $app->add(function ($request, $response, $next) {
         ->withHeader("Access-Control-Allow-Methods", implode(",", $methods));
 });
 
+// LOGIN API
 $app->post('/login', function (Request $request, Response $response) use ($app, $conn) {
     global $app;
     $table_name = 'user';
-    // $response->withHeader('Access-Control-Allow-Origin', '*'),
     $dados = json_decode($request->getBody(), true);
     $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-    // $keys = array_keys($dados); //Paga as chaves do array
     /*
     O uso de prepare e bindValue é importante para se evitar SQL Injection
     */
-    // $sth = $this->PDO->prepare("INSERT INTO doctor (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
     $sth = $conn->prepare("SELECT * FROM `$table_name` 
     WHERE
     email = :email AND password = MD5(:password) LIMIT 0,1");
 
-    // $sth->bindValue(':email', $dados->email);
-    // $sth->bindValue(':pass', $dados->email);
     foreach ($dados as $key => $value) {
         $sth->bindValue(':' . $key, $value);
     }
@@ -87,23 +70,20 @@ $app->post('/login', function (Request $request, Response $response) use ($app, 
     if ($sth->rowCount() == 1) {
 
         $result = $sth->fetch(\PDO::FETCH_ASSOC);
-        // $returnUser = array("email"=> $result-)
-        // $result['permission'] = 1;
         echo json_encode(array(
             "success" => true,
             "message" => "Login efetuado com sucesso!",
             "user" => $result,
         ));
-        // $app->render('default.php', ["data" => array("user" => $result), "success" => true, "message" => "Login Efetuado com Sucesso!"], 200);
     } else {
         echo json_encode(array(
             "success" => false,
             "message" => "E-mail ou senha incorretos!",
         ));
-        // $app->render('error.php', ["success" => false, "message" => "E-mail ou senha incorretos."], 200);
     }
 });
 
+// USERS API
 $app->group('/user', function () use ($app, $conn) {
     $app->get('/all', function () use ($app, $conn) {
         $table_name = 'user';
@@ -112,16 +92,11 @@ $app->group('/user', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "users" => $result,
             ));
         }
-        // $sth->execute();
-        // $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-        // // $app->render('default.php', ["data" => $result, "success" => true], 200);
-        // echo json_encode($result);
     });
 
     $app->get('/{id}', function (Request $request, Response $response, $args) use ($app, $conn) {
@@ -130,7 +105,6 @@ $app->group('/user', function () use ($app, $conn) {
         $sth = $conn->prepare("SELECT * FROM `$table_name` WHERE id = $id LIMIT 0,1");
         $sth->execute();
         $result = $sth->fetch(\PDO::FETCH_ASSOC);
-        // $app->render('default.php', ["data" => $result, "success" => true], 200);
         echo json_encode($result);
     });
 
@@ -139,7 +113,7 @@ $app->group('/user', function () use ($app, $conn) {
         $table_name = 'user';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        $keys = array_keys($dados); //Paga as chaves do array
+        $keys = array_keys($dados); //Pega as chaves do array
 
         $sth = $conn->prepare("UPDATE `$table_name` 
             SET firstname = :firstname, lastname = :lastname, email = :email
@@ -156,24 +130,21 @@ $app->group('/user', function () use ($app, $conn) {
                 "id" => $conn->lastInsertId(),
             ));
         } else {
-            http_response_code(200);
             echo json_encode(array(
                 "success" => false,
-                "dados" => $dados,
                 "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
 });
 
+// CLIENTS API
 $app->group('/cliente', function () use ($app, $conn) {
     $app->post('/', function (Request $request, Response $response) use ($app, $conn) {
         global $app;
         $table_name = 'clientes';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
 
         $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ", valor_gasto) VALUES (:" . implode(",:", $keys) . ",0)");
@@ -193,10 +164,8 @@ $app->group('/cliente', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível adicionar o cliente solicitado... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->get('/all', function () use ($app, $conn) {
@@ -206,7 +175,6 @@ $app->group('/cliente', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "clientes" => $result,
@@ -217,10 +185,6 @@ $app->group('/cliente', function () use ($app, $conn) {
                 "message" => "Não foi possível encontrar nenhum cliente.",
             ));
         }
-        // $sth->execute();
-        // $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-        // // $app->render('default.php', ["data" => $result, "success" => true], 200);
-        // echo json_encode($result);
     });
 
     $app->get('/{id}', function (Request $request, Response $response, $args) use ($app, $conn) {
@@ -229,7 +193,6 @@ $app->group('/cliente', function () use ($app, $conn) {
         $sth = $conn->prepare("SELECT * FROM `$table_name` WHERE id = $id LIMIT 0,1");
         $sth->execute();
         $result = $sth->fetch(\PDO::FETCH_ASSOC);
-        // $app->render('default.php', ["data" => $result, "success" => true], 200);
         echo json_encode($result);
     });
 
@@ -254,11 +217,9 @@ $app->group('/cliente', function () use ($app, $conn) {
                 "message" => "Cliente atualizado com sucesso!",
             ));
         } else {
-            http_response_code(200);
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível editar o cliente solicitado... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
@@ -279,19 +240,18 @@ $app->group('/cliente', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível deletar o cliente solicitado... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
 });
 
+// PRODUCTS API
 $app->group('/product', function () use ($app, $conn) {
     $app->post('/', function (Request $request, Response $response) use ($app, $conn) {
         global $app;
         $table_name = 'mercadorias';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
 
         $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
@@ -300,7 +260,6 @@ $app->group('/product', function () use ($app, $conn) {
             $sth->bindValue(':' . $key, $value);
         }
         if ($sth->execute()) {
-
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
@@ -311,10 +270,8 @@ $app->group('/product', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->post('/update', function (Request $request, Response $response) use ($app, $conn) {
@@ -323,10 +280,8 @@ $app->group('/product', function () use ($app, $conn) {
         $stock_table_name = 'estoque';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
 
-        // $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
         $sth = $conn->prepare("UPDATE `$table_name` 
             SET cod = :cod, name = :name, description = :description, p_unit = :p_unit, p_entrada = :p_entrada, p_saida = :p_saida, p_final = :p_final, img = :img
              WHERE id = :id");
@@ -335,7 +290,6 @@ $app->group('/product', function () use ($app, $conn) {
             $sth->bindValue(':' . $key, $value);
         }
         if ($sth->execute()) {
-            // http_response_code(200);
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
@@ -343,15 +297,12 @@ $app->group('/product', function () use ($app, $conn) {
                 "id" => $conn->lastInsertId(),
             ));
         } else {
-            http_response_code(200);
             echo json_encode(array(
                 "success" => false,
                 "dados" => $dados,
                 "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->get('/delete/{id}', function (Request $request, Response $response, $args) use ($app, $conn) {
@@ -370,7 +321,6 @@ $app->group('/product', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível deletar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
@@ -384,7 +334,6 @@ $app->group('/product', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "products" => $result,
@@ -401,7 +350,6 @@ $app->group('/product', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetch(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "product" => $result,
@@ -419,7 +367,6 @@ $app->group('/product', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetch(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "product" => $result,
@@ -433,13 +380,13 @@ $app->group('/product', function () use ($app, $conn) {
     });
 });
 
+// STOCK API
 $app->group('/stock', function () use ($app, $conn) {
     $app->post('/', function (Request $request, Response $response) use ($app, $conn) {
         global $app;
         $table_name = 'estoque';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
 
         $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
@@ -459,10 +406,8 @@ $app->group('/stock', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->post('/update', function (Request $request, Response $response) use ($app, $conn) {
@@ -470,10 +415,7 @@ $app->group('/stock', function () use ($app, $conn) {
         $table_name = 'estoque';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
-        // $newDate = new DateTime();
-        // $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
         $sth = $conn->prepare("UPDATE `$table_name` 
             SET quantidade = :quantidade, saidas = :saidas, ultima_data = :ultima_data 
              WHERE mercadoriaId = :mercadoriaId");
@@ -482,7 +424,6 @@ $app->group('/stock', function () use ($app, $conn) {
             $sth->bindValue(':' . $key, $value);
         }
         if ($sth->execute()) {
-            // http_response_code(200);
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
@@ -490,15 +431,11 @@ $app->group('/stock', function () use ($app, $conn) {
                 "id" => $conn->lastInsertId(),
             ));
         } else {
-            http_response_code(200);
             echo json_encode(array(
                 "success" => false,
-                "dados" => $dados,
                 "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->get('/delete/{cod}', function (Request $request, Response $response, $args) use ($app, $conn) {
@@ -517,7 +454,6 @@ $app->group('/stock', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível deletar o estoque da mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
@@ -531,7 +467,6 @@ $app->group('/stock', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "products" => $result,
@@ -540,13 +475,13 @@ $app->group('/stock', function () use ($app, $conn) {
     });
 });
 
+// SALES API
 $app->group('/sale', function () use ($app, $conn) {
     $app->post('/', function (Request $request, Response $response) use ($app, $conn) {
         global $app;
         $table_name = 'vendas';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         $keys = array_keys($dados); //Paga as chaves do array
 
         $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
@@ -566,10 +501,8 @@ $app->group('/sale', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível registrar a venda solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->post('/addItens', function (Request $request, Response $response) use ($app, $conn) {
@@ -580,7 +513,6 @@ $app->group('/sale', function () use ($app, $conn) {
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
 
         foreach ($dados as $toAdd) {
-            // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
             $keys = array_keys($toAdd); //Paga as chaves do array
 
             $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
@@ -601,16 +533,13 @@ $app->group('/sale', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => true,
                 "message" => "Venda registrada com sucesso!",
-                // "id" => $conn->lastInsertId(),
             ));
         } else {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível registrar os itens da venda solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->post('/update/cliente', function (Request $request, Response $response) use ($app, $conn) {
@@ -618,10 +547,6 @@ $app->group('/sale', function () use ($app, $conn) {
         $table_name = 'clientes';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
-        $keys = array_keys($dados); //Paga as chaves do array
-        // $newDate = new DateTime();
-        // $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
         $sth = $conn->prepare("UPDATE `$table_name` 
             SET valor_gasto = :valor_gasto 
              WHERE id = :id");
@@ -630,22 +555,17 @@ $app->group('/sale', function () use ($app, $conn) {
             $sth->bindValue(':' . $key, $value);
         }
         if ($sth->execute()) {
-            // http_response_code(200);
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
                 "message" => "Cliente atualizado com sucesso!",
             ));
         } else {
-            // http_response_code(200);
             echo json_encode(array(
                 "success" => false,
-                // "dados" => $dados,
                 "message" => "Não foi possível atualizar o cliente solicitado... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->post('/update/itens', function (Request $request, Response $response) use ($app, $conn) {
@@ -656,7 +576,6 @@ $app->group('/sale', function () use ($app, $conn) {
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
 
         foreach ($dados as $toAdd) {
-            // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
             $keys = array_keys($toAdd); //Paga as chaves do array
 
             $sth = $conn->prepare("UPDATE `$table_name` 
@@ -674,20 +593,16 @@ $app->group('/sale', function () use ($app, $conn) {
             }
         }
         if ($added) {
-            //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
                 "message" => "Venda registrada com sucesso!",
-                // "id" => $conn->lastInsertId(),
             ));
         } else {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível registrar os itens da venda solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
-        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
     $app->get('/delete/{cod}', function (Request $request, Response $response, $args) use ($app, $conn) {
@@ -706,7 +621,6 @@ $app->group('/sale', function () use ($app, $conn) {
             echo json_encode(array(
                 "success" => false,
                 "message" => "Não foi possível deletar o estoque da mercadoria solicitada... Tente novamente mais tarde!",
-                // "id" => $sth->lastInsertId(),
             ));
         }
     });
@@ -718,7 +632,6 @@ $app->group('/sale', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "message" => "As vendas registradas no sistema",
@@ -739,7 +652,6 @@ $app->group('/sale', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "message" => "As vendas registradas no sistema com o usuário logado.",
@@ -759,20 +671,15 @@ $app->group('/sale', function () use ($app, $conn) {
         $dia = $date->format('d');
         $mes = $date->format('m');
         $ano = $date->format('Y');
-        // echo $date->format('Y-m-d H:i:s');
         $sth = $conn->prepare("SELECT v.*, c.name as cliente, u.firstname as vendedor FROM `$table_name` as v, `clientes` as c, `user` as u
          WHERE v.clienteId = c.id AND v.vendedorId = u.id AND v.dia_venda = $dia AND v.mes_venda = $mes AND v.ano_venda = $ano LIMIT 0,5");
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "message" => "As vendas registradas no sistema",
                 "vendas" => $result,
-                "dia" => $dia,
-                "mes" => $mes,
-                "ano" => $ano
             ));
         } else {
             echo json_encode(array(
@@ -790,7 +697,6 @@ $app->group('/sale', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "message" => "As vendas registradas no sistema",
@@ -814,7 +720,6 @@ $app->group('/sale', function () use ($app, $conn) {
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
-            // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
                 "message" => "As vendas registradas no sistema com o usuário logado.",
