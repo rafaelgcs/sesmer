@@ -57,57 +57,21 @@ import React, { PureComponent } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
-
-const data = [
-  {
-    name: 'Page A', uv: 4000, valor: 2400, amt: 2400,
-  },
-  {
-    name: 'Page B', uv: 3000, valor: 1398, amt: 2210,
-  },
-  {
-    name: 'Page C', uv: 2000, valor: 9800, amt: 2290,
-  },
-  {
-    name: 'Page D', uv: 2780, valor: 3908, amt: 2000,
-  },
-  {
-    name: 'Page E', uv: 1890, valor: 4800, amt: 2181,
-  },
-  {
-    name: 'Page F', uv: 2390, valor: 3800, amt: 2500,
-  },
-  {
-    name: 'Page G', uv: 3490, valor: 4300, amt: 2100,
-  },
-];
-
-
-const getIntroOfPage = (label) => {
-  if (label === 'Page A') {
-    return "Page A is about men's clothing";
-  } if (label === 'Page B') {
-    return "Page B is about women's dress";
-  } if (label === 'Page C') {
-    return "Page C is about women's bag";
-  } if (label === 'Page D') {
-    return 'Page D is about household goods';
-  } if (label === 'Page E') {
-    return 'Page E is about food';
-  } if (label === 'Page F') {
-    return 'Page F is about baby food';
-  }
-};
+import api from '../services/api';
 
 const CustomTooltip = ({ active, payload, label }) => {
+  console.log(payload);
   if (active) {
-    return (
-      <div className="custom-tooltip">
-        <p className="label">{`${label} : ${payload[0].value}`}</p>
-        <p className="intro">{getIntroOfPage(label)}</p>
-        <p className="desc">Anything you want can be displayed here.</p>
-      </div>
-    );
+    if (payload != null) {
+
+      return (
+        <div className="custom-tooltip" style={{ backgroundColor: '#00000070', borderRadius: 3, color: 'white' }}>
+          <p className="label">{`Valor Vendido Por "${payload != null && payload[0].payload.vendedor}" : ${payload != null && parseFloat(payload[0].value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</p>
+        </div>
+      );
+    } else {
+      return null;
+    }
   }
 
   return null;
@@ -115,23 +79,52 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default class Example extends PureComponent {
   static jsfiddleUrl = 'https://jsfiddle.net/alidingling/vxq4ep63/';
+  state = {
+    vendas: [],
+
+  };
+
+  async componentDidMount() {
+    const response = await api.get('/sale/today');
+
+    const returned = await JSON.stringify(response.data.vendas);
+    const vendas = await JSON.parse(returned);
+
+    let saveVendas = [];
+
+    vendas.map((item) => {
+
+      saveVendas.push({
+        id: item.id,
+        name: item.cliente,
+        label: item.cliente,
+        data: `${item.dia_venda}/${item.mes_venda}/${item.ano_venda} ${item.hora_venda}`,
+        cliente: item.cliente,
+        codigoVenda: item.id,
+        metodo: item.metodo,
+        valor: item.valor
+      });
+    });
+
+    this.setState({ vendas: vendas });
+  }
 
   render() {
     return (
       <BarChart
         width={700}
         height={250}
-        data={data}
+        data={this.state.vendas}
         margin={{
           top: 5, right: 30, left: 20, bottom: 5,
         }}
       >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
+        <XAxis dataKey="vendedor" />
         <YAxis />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
-        <Bar dataKey="valor" barSize={20} fill="#8884d8" />
+        <Bar dataKey="valor" barSize={20} fill="green" />
       </BarChart>
     );
   }

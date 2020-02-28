@@ -15,14 +15,6 @@ function createData(id, date, name, shipTo, paymentMethod, amount) {
   return { id, date, name, shipTo, paymentMethod, amount };
 }
 
-const rows = [
-  createData(0, '16 Mar, 2019', 'Elvis Presley', '10000000001', 'CARTÃO', 312.44),
-  createData(1, '16 Mar, 2019', 'Paul McCartney', '10000000002', 'A VISTA', 866.99),
-  createData(2, '16 Mar, 2019', 'Tom Scholz', '10000000003', 'A VISTA', 100.81),
-  createData(3, '16 Mar, 2019', 'Michael Jackson', '10000000004', 'CARTÃO', 654.39),
-  createData(4, '15 Mar, 2019', 'Bruce Springsteen', '10000000005', 'A VISTA', 212.79),
-];
-
 function preventDefault(event) {
   event.preventDefault();
 }
@@ -82,11 +74,11 @@ export default function Orders() {
         <TableBody>
           {vendas.map(row => (
             <TableRow key={row.id}>
-              <TableCell>{row.data}</TableCell>
-              <TableCell>{row.name}</TableCell>
+              <TableCell>{`${row.dia_venda}/${row.mes_venda > 10 ? "0"+row.mes_venda : row.mes_venda}/${row.ano_venda} ${row.hora_venda}`}</TableCell>
               <TableCell>{row.cliente}</TableCell>
+              <TableCell>{row.id}</TableCell>
               <TableCell>{row.metodo}</TableCell>
-              <TableCell align="right">{row.valor}</TableCell>
+              <TableCell align="right">{parseFloat(row.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
             </TableRow>
           ))}
         </TableBody>

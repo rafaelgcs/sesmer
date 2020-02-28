@@ -267,12 +267,6 @@ export default function HomePage() {
                                 <Deposits />
                             </Paper>
                         </Grid>
-                        {/* Chart */}
-                        <Grid item xs={12}>
-                            <Paper className={classes.paper}>
-                                <Button onClick={() => setSnackOpen(true)}>Snack Teste</Button>
-                            </Paper>
-                        </Grid>
                         {/* Recent Orders */}
                         <Grid item xs={12}>
                             <Paper className={classes.paper}>

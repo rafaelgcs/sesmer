@@ -36,7 +36,7 @@ import MaterialTable from 'material-table';
 
 // Components
 import TableCart from '../../components/TableCart';
-import { logout } from '../../services/auth';
+import { logout, getToken } from '../../services/auth';
 import { mainListItems, secondaryListItems } from '../../components/listItems';
 import Chart from '../../components/Chart';
 import Deposits from '../../components/Deposits';
@@ -426,9 +426,115 @@ export default function NewCart() {
 
     const finalizarCompra = async () => {
         let dateNow = new Date();
+        let userLogged = JSON.parse(getToken());
         // setOpenDialog(true);
         console.log(cart);
+        console.log(userLogged);
+        let venda = JSON.stringify({
+            valor: cart.valor,
+            clienteId: cart.cliente.id,
+            vendedorId: userLogged.id,
+            dia_venda: dateNow.getDate(),
+            mes_venda: dateNow.getMonth() + 1,
+            ano_venda: dateNow.getFullYear(),
+            hora_venda: `${dateNow.getHours()}:${dateNow.getMinutes() < 10 ? "0" + dateNow.getMinutes() : dateNow.getMinutes()}`,
+            metodo: 'Cartão de Crédito',
+        });
+
+        const response = await api.post('/sale/', venda);
+
+        // console.log(response);
+        if (response.status == 200) {
+            if (response.data.success) {
+                console.log("Registrou Venda");
+                let itensVenda = [];
+                itensVenda = cart.itens.map((item) => {
+                    let returnedItem = {
+                        mercadoria_cod: item.obj.id,
+                        venda_id: response.data.id,
+                        quantidade: item.quantidade
+                    };
+                    return returnedItem;
+                });
+                const response2 = await api.post('/sale/addItens', JSON.stringify(itensVenda));
+
+                if (response2.status == 200) {
+                    if (response2.data.success) {
+                        console.log("Cadastrou os itens");
+                        let clientToUpdate = {
+                            valor_gasto: parseFloat(cart.cliente.valor_gasto) + parseFloat(cart.valor),
+                            id: cart.cliente.id,
+                        }
+                        const response3 = await api.post('/sale/update/cliente', JSON.stringify(clientToUpdate));
+
+                        if (response3.status == 200) {
+                            if (response3.data.success) {
+                                console.log("Atualizou o cliente");
+                                let toUpdateItens = cart.itens.map((item)=>{
+                                    let toUpdateItem = {
+                                        mercadoriaId: item.obj.cod,
+                                        quantidade: item.obj.stock - item.quantidade,
+                                        saidas: item.obj.saidas + item.quantidade
+                                    };
+                                    return toUpdateItem;
+                                });
+
+                                const response4 = await api.post('/sale/update/itens', JSON.stringify(toUpdateItens));
+                                if (response4.status == 200) {
+                                    if (response4.data.success) {
+                                        console.log("Atualizou os itens");
+                                        finishCart();
+                                    } else {
+                                        console.log("Não atualizou os itens");
+                                    }
+                                } else {
+                                    console.log("Não atualizou os itens");
+                                }
+                            } else {
+                                console.log("Não atualizou o cliente");
+                            }
+                        } else {
+                            console.log("Não atualizou o cliente");
+                        }
+                    } else {
+                        console.log("Não cadastrou os itens");
+                    }
+                } else {
+                    console.log("Não cadastrou os itens");
+                }
+            } else {
+                console.log("Não registrou a Venda");
+            }
+        } else {
+            console.log("Não registrou a Venda");
+        }
     };
+
+    const finishCart = async () => {
+        setLoadingCartTable(true);
+        setLoadingCartValue(true);
+        setLoadingSearch(true);
+
+        let newCart = cart;
+        newCart.itemSelected = {};
+        newCart.itens = [];
+        newCart.showItemSelected = false;
+        newCart.valor = 0.0;
+        newCart.cliente = null;
+        setSelectedClient(false);
+        setCart(newCart);
+        setValueProductSearch("");
+        restartLocalCart();
+        setMessageSnackBar("Compra finalizada com sucesso!");
+        setSnackOpen(true);
+        await sleep(800);
+
+        setLoadingCartTable(false);
+        setLoadingCartValue(false);
+        setLoadingSearch(false);
+        setSelectedClient(false);
+    };
+
     const enableToSelectClient = async () => {
         // let dateNow = new Date();
         setOpenDialog(true);
@@ -449,16 +555,10 @@ export default function NewCart() {
         setOpenDialog(false);
     }
 
-    const TransitionDialog = React.forwardRef(function Transition(props, ref) {
-        return <Slide direction="up" ref={ref} {...props} />;
-    });
-
     const _doLoggout = () => {
         logout();
         window.location.href = './';
     };
-    const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
-
     React.useEffect(() => {
         let active = true;
 
@@ -601,9 +701,9 @@ export default function NewCart() {
                         {/* Search itens */}
                         <Grid item xs={12}>
                             <Paper component="form" onSubmit={(e) => escolherItem(e)} className={classes.root2}>
-                                <IconButton className={classes.iconButton2} aria-label="menu">
+                                {/* <IconButton className={classes.iconButton2} aria-label="menu">
                                     <MenuIcon />
-                                </IconButton>
+                                </IconButton> */}
                                 <Autocomplete
                                     id="asynchronous-demo"
                                     style={{ width: '100%' }}
@@ -645,10 +745,10 @@ export default function NewCart() {
                                 <IconButton type="submit" className={classes.iconButton2} aria-label="search">
                                     <SearchIcon />
                                 </IconButton>
-                                <Divider className={classes.divider2} orientation="vertical" />
+                                {/* <Divider className={classes.divider2} orientation="vertical" />
                                 <IconButton color="primary" className={classes.iconButton2} aria-label="directions">
                                     <DirectionsIcon />
-                                </IconButton>
+                                </IconButton> */}
                             </Paper>
                         </Grid>
                         <Grid item xs={8}>
@@ -674,7 +774,7 @@ export default function NewCart() {
                                                     </CardContent>
                                                     <div className={classes.controlsCard}>
                                                         <Typography variant="subtitle1" color="textSecondary">
-                                                            Valor: R$ {cart.itemSelected.p_final}
+                                                            Valor: {parseFloat(cart.itemSelected.p_final).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                                         </Typography>
                                                         <Typography variant="subtitle1" color="textSecondary">
                                                             - Estoque: {cart.itemSelected.stock}
@@ -720,7 +820,7 @@ export default function NewCart() {
                                                                 Valor Total do Carrinho:
                                                             </Typography>
                                                             <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
-                                                                R$ {cart.valor}
+                                                                {parseFloat(cart.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                                             </Typography>
                                                         </>
                                                 }

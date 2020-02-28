@@ -410,7 +410,7 @@ function HistoryTable(props) {
   const reloadTable = async () => {
     setUpdating(false);
     let userLogged = JSON.parse(getToken());
-    const response = await api.get(`/sale/all/${userLogged.id}`);
+    const response = await api.get(`/sale/all`);
 
     const returned = await JSON.stringify(response.data.history);
     const history = await JSON.parse(returned);
@@ -442,7 +442,7 @@ function HistoryTable(props) {
     if (history.length == 0) {
       (async () => {
         let userLogged = JSON.parse(getToken());
-        const response = await api.get(`/sale/all/${userLogged.id}`);
+        const response = await api.get(`/sale/all`);
 
         const returned = await JSON.stringify(response.data.history);
         const history = await JSON.parse(returned);
@@ -469,7 +469,7 @@ function HistoryTable(props) {
       {
         updating
           ? <MaterialTable
-            title="Minhas Vendas"
+            title="Todas as Vendas"
             localization={{ toolbar: { searchPlaceholder: 'Buscar' } }}
             columns={state.columns}
             data={history}
@@ -540,7 +540,7 @@ function HistoryTable(props) {
   );
 }
 
-export default function HistoryCart() {
+export default function AllCart() {
   const classes = useStyles();
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
@@ -581,7 +581,7 @@ export default function HistoryCart() {
             <MenuIcon />
           </IconButton>
           <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
-            Histórico Pessoal
+            Histórico de Vendas
                     </Typography>
           <IconButton color="inherit">
             <Badge badgeContent={4} color="secondary">

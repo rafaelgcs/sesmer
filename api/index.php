@@ -559,22 +559,63 @@ $app->group('/sale', function () use ($app, $conn) {
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
-                "message" => "Mercadoria adicionada com sucesso!",
+                "message" => "Venda registrada com sucesso!",
                 "id" => $conn->lastInsertId(),
             ));
         } else {
             echo json_encode(array(
                 "success" => false,
-                "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
+                "message" => "Não foi possível registrar a venda solicitada... Tente novamente mais tarde!",
                 // "id" => $sth->lastInsertId(),
             ));
         }
         // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
     });
 
-    $app->post('/update', function (Request $request, Response $response) use ($app, $conn) {
+    $app->post('/addItens', function (Request $request, Response $response) use ($app, $conn) {
         global $app;
-        $table_name = 'estoque';
+        $table_name = 'itens_venda';
+        $added = true;
+        $dados = json_decode($request->getBody(), true);
+        $dados = (sizeof($dados) == 0) ? $_POST : $dados;
+
+        foreach ($dados as $toAdd) {
+            // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
+            $keys = array_keys($toAdd); //Paga as chaves do array
+
+            $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
+
+            foreach ($toAdd as $key => $value) {
+                $sth->bindValue(':' . $key, $value);
+            }
+            if ($sth->execute()) {
+                if ($added == true) {
+                    $added = true;
+                }
+            } else {
+                $added = false;
+            }
+        }
+        if ($added) {
+            //Retorna o id inserido
+            echo json_encode(array(
+                "success" => true,
+                "message" => "Venda registrada com sucesso!",
+                // "id" => $conn->lastInsertId(),
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foi possível registrar os itens da venda solicitada... Tente novamente mais tarde!",
+                // "id" => $sth->lastInsertId(),
+            ));
+        }
+        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
+    });
+
+    $app->post('/update/cliente', function (Request $request, Response $response) use ($app, $conn) {
+        global $app;
+        $table_name = 'clientes';
         $dados = json_decode($request->getBody(), true);
         $dados = (sizeof($dados) == 0) ? $_POST : $dados;
         // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
@@ -582,8 +623,8 @@ $app->group('/sale', function () use ($app, $conn) {
         // $newDate = new DateTime();
         // $sth = $conn->prepare("INSERT INTO `$table_name` (" . implode(',', $keys) . ") VALUES (:" . implode(",:", $keys) . ")");
         $sth = $conn->prepare("UPDATE `$table_name` 
-            SET quantidade = :quantidade, saidas = :saidas, ultima_data = :ultima_data 
-             WHERE mercadoriaId = :mercadoriaId");
+            SET valor_gasto = :valor_gasto 
+             WHERE id = :id");
 
         foreach ($dados as $key => $value) {
             $sth->bindValue(':' . $key, $value);
@@ -593,15 +634,56 @@ $app->group('/sale', function () use ($app, $conn) {
             //Retorna o id inserido
             echo json_encode(array(
                 "success" => true,
-                "message" => "Mercadoria adicionada com sucesso!",
-                "id" => $conn->lastInsertId(),
+                "message" => "Cliente atualizado com sucesso!",
             ));
         } else {
-            http_response_code(200);
+            // http_response_code(200);
             echo json_encode(array(
                 "success" => false,
-                "dados" => $dados,
-                "message" => "Não foi possível adicionar a mercadoria solicitada... Tente novamente mais tarde!",
+                // "dados" => $dados,
+                "message" => "Não foi possível atualizar o cliente solicitado... Tente novamente mais tarde!",
+                // "id" => $sth->lastInsertId(),
+            ));
+        }
+        // $app->render('default.php', ["data" => ['id' => $this->PDO->lastInsertId()]], 200);
+    });
+
+    $app->post('/update/itens', function (Request $request, Response $response) use ($app, $conn) {
+        global $app;
+        $table_name = 'estoque';
+        $added = true;
+        $dados = json_decode($request->getBody(), true);
+        $dados = (sizeof($dados) == 0) ? $_POST : $dados;
+
+        foreach ($dados as $toAdd) {
+            // $dados = (sizeof($dados) == 0) ? $_POST : $dados;
+            $keys = array_keys($toAdd); //Paga as chaves do array
+
+            $sth = $conn->prepare("UPDATE `$table_name` 
+                SET saidas = :saidas, quantidade = :quantidade
+                WHERE mercadoriaId = :mercadoriaId");
+            foreach ($toAdd as $key => $value) {
+                $sth->bindValue(':' . $key, $value);
+            }
+            if ($sth->execute()) {
+                if ($added == true) {
+                    $added = true;
+                }
+            } else {
+                $added = false;
+            }
+        }
+        if ($added) {
+            //Retorna o id inserido
+            echo json_encode(array(
+                "success" => true,
+                "message" => "Venda registrada com sucesso!",
+                // "id" => $conn->lastInsertId(),
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foi possível registrar os itens da venda solicitada... Tente novamente mais tarde!",
                 // "id" => $sth->lastInsertId(),
             ));
         }
@@ -630,18 +712,73 @@ $app->group('/sale', function () use ($app, $conn) {
     });
 
     $app->get('/all', function () use ($app, $conn) {
-        $table_name = 'mercadorias';
+        $table_name = 'vendas';
 
-        $sth = $conn->prepare("SELECT m.*,e.quantidade as stock,e.saidas 
-        FROM `$table_name` as m, estoque as e 
-        WHERE e.mercadoriaId = m.cod");
+        $sth = $conn->prepare("SELECT v.*, c.name as cliente, u.firstname as vendedor FROM `$table_name` as v, `clientes` as c, `user` as u WHERE v.clienteId = c.id AND v.vendedorId = u.id");
         if ($sth->execute()) {
 
             $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
             // $app->render('default.php', ["data" => $result, "success" => true], 200);
             echo json_encode(array(
                 "success" => true,
-                "products" => $result,
+                "message" => "As vendas registradas no sistema",
+                "history" => $result,
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foram encontradas nenhuma venda registrada no sistema.",
+            ));
+        }
+    });
+
+    $app->get('/all/{id}', function (Request $request, Response $response, $args) use ($app, $conn) {
+        $table_name = 'vendas';
+        $id = $args['id'];
+        $sth = $conn->prepare("SELECT v.*, c.name as cliente, u.firstname as vendedor FROM `$table_name` as v, `clientes` as c, `user` as u WHERE v.clienteId = c.id AND v.vendedorId = u.id AND u.id = $id");
+        if ($sth->execute()) {
+
+            $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+            // $app->render('default.php', ["data" => $result, "success" => true], 200);
+            echo json_encode(array(
+                "success" => true,
+                "message" => "As vendas registradas no sistema com o usuário logado.",
+                "history" => $result,
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foram encontradas nenhuma venda registrada no sistema para o usuário logado.",
+            ));
+        }
+    });
+
+    $app->get('/today', function () use ($app, $conn) {
+        $table_name = 'vendas';
+        $date = new DateTime();
+        $dia = $date->format('d');
+        $mes = $date->format('m');
+        $ano = $date->format('Y');
+        // echo $date->format('Y-m-d H:i:s');
+        $sth = $conn->prepare("SELECT v.*, c.name as cliente, u.firstname as vendedor FROM `$table_name` as v, `clientes` as c, `user` as u
+         WHERE v.clienteId = c.id AND v.vendedorId = u.id AND v.dia_venda = $dia AND v.mes_venda = $mes AND v.ano_venda = $ano LIMIT 0,5");
+        if ($sth->execute()) {
+
+            $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+            // $app->render('default.php', ["data" => $result, "success" => true], 200);
+            echo json_encode(array(
+                "success" => true,
+                "message" => "As vendas registradas no sistema",
+                "vendas" => $result,
+                "dia" => $dia,
+                "mes" => $mes,
+                "ano" => $ano
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foram encontradas nenhuma venda registrada no sistema.",
+                "vendas" => $result,
             ));
         }
     });
@@ -664,6 +801,29 @@ $app->group('/sale', function () use ($app, $conn) {
                 "success" => false,
                 "message" => "Não foram encontradas nenhuma venda registrada no sistema.",
                 "vendas" => $result,
+            ));
+        }
+    });
+
+    $app->get('/{id}/itens', function (Request $request, Response $response, $args) use ($app, $conn) {
+        $table_name = 'itens_venda';
+        $id = $args['id'];
+        $sth = $conn->prepare("SELECT m.*, iv.quantidade
+            FROM `$table_name` as iv, `mercadorias` as m
+            WHERE iv.venda_id = $id AND iv.mercadoria_cod = m.id");
+        if ($sth->execute()) {
+
+            $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+            // $app->render('default.php', ["data" => $result, "success" => true], 200);
+            echo json_encode(array(
+                "success" => true,
+                "message" => "As vendas registradas no sistema com o usuário logado.",
+                "itens" => $result,
+            ));
+        } else {
+            echo json_encode(array(
+                "success" => false,
+                "message" => "Não foram encontradas nenhuma venda registrada no sistema para o usuário logado.",
             ));
         }
     });

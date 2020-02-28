@@ -10,6 +10,7 @@ import NewCart from "./screens/cart/NewCart";
 import HistoryCart from "./screens/cart/HistoryCart";
 import ClientesPage from "./screens/Clientes";
 import StockPage from "./screens/Stock";
+import AllCart from "./screens/cart/AllCart";
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route
@@ -33,6 +34,7 @@ const Routes = () => (
       <PrivateRoute exact path="/cart/find" component={FindItem} />
       <PrivateRoute exact path="/cart/add" component={NewCart} />
       <PrivateRoute exact path="/cart/history" component={HistoryCart} />
+      <PrivateRoute exact path="/cart/all" component={AllCart} />
       <PrivateRoute exact path="/clientes" component={ClientesPage} />
       <PrivateRoute exact path="/stock" component={StockPage} />
       {/* <Route path="/signup" component={() => <h1>SignUp</h1>} /> */}

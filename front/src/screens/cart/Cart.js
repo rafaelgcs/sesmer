@@ -188,7 +188,7 @@ export default function CartPage() {
                 <Container maxWidth="lg" className={classes.container}>
                     <Grid container spacing={3}>
                         {/* Nova Venda */}
-                        <Grid item xs={12} md={4} lg={3}>
+                        <Grid item xs={12} md={4} lg={4}>
                             <Paper className={fixedHeightPaper}>
                                 <Link onClick={() => window.location.href = "./cart/add"} style={{ cursor: 'pointer', textDecoration: 'none', color: 'green' }}>
                                     <Grid container>
@@ -219,8 +219,8 @@ export default function CartPage() {
                                 </Link> */}
                             </Paper>
                         </Grid>
-                        {/* Nova Venda */}
-                        <Grid item xs={12} md={4} lg={3}>
+                        {/* Minhas Vendas */}
+                        <Grid item xs={12} md={4} lg={4}>
                             <Paper className={fixedHeightPaper}>
                                 <Link
                                     to="/cart/history"
@@ -245,15 +245,14 @@ export default function CartPage() {
                                 </Link>
                             </Paper>
                         </Grid>
-                        {/* Nova Venda */}
-                        <Grid item xs={12} md={4} lg={3}>
+                        {/* Todas as Venda */}
+                        <Grid item xs={12} md={4} lg={4}>
                             <Paper className={fixedHeightPaper}>
                                 <Link
                                     disabled
                                     variant="body2"
-                                    onClick={() => {
-                                        console.info("I'm a button.");
-                                    }}
+                                    to="/cart/all"
+                                    href="/cart/all"
                                     style={{ cursor: 'pointer', color: 'green', textDecoration: 'none' }}
                                 >
                                     <Grid container>
@@ -264,42 +263,13 @@ export default function CartPage() {
                                         </Grid> */}
                                         <Grid item xs={12}>
                                             <Typography component="p" variant="h6" >
-                                                Vendas Por Cliente
+                                                Todas as Vendas
                                             </Typography>
                                             <Typography component="p" style={{ color: 'grey' }} >
-                                                Pesquise as vendas feitas por um cliente específico
+                                                Pesquise as vendas feitas por um cliente específico ou por data
                                             </Typography>
                                         </Grid>
                                     </Grid>
-                                </Link>
-                            </Paper>
-                        </Grid>
-                        {/* Nova Venda */}
-                        <Grid item xs={12} md={4} lg={3}>
-                            <Paper className={fixedHeightPaper}>
-                                <Link
-                                    variant="body2"
-                                    onClick={() => {
-                                        console.info("I'm a button.");
-                                    }}
-                                    style={{ cursor: 'pointer', color: 'green', textDecoration: 'none' }}
-                                >
-                                    <Grid container>
-                                        <Grid item xs={4} style={{ alignContent: 'center', textAlign: 'center' }}>
-                                            <div style={{ width: '100%', alignContent: 'center', textAlign: 'center', flex: 1 }}>
-                                                <AddShoppingCartIcon style={{ color: 'green', fontSize: 70, }} />
-                                            </div>
-                                        </Grid>
-                                        <Grid item xs={8}>
-                                            <Typography component="p" variant="h5" >
-                                                Nova Venda
-                                            </Typography>
-                                            <Typography component="p" style={{ color: 'grey' }} >
-                                                Inicie uma nova venda
-                                            </Typography>
-                                        </Grid>
-                                    </Grid>
-
                                 </Link>
                             </Paper>
                         </Grid>

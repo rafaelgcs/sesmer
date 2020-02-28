@@ -578,25 +578,9 @@ function ClientsTable(props) {
                             setSelectedItem(item);
                             handleClickOpen();
                         }}
-                        // onRowUpdate
-                        // onSelectionChange={reloadTable()}
-                        // onOrderChange={reloadTable()}
                         editable={{
                             onRowAdd: async newData =>
                                 await newRow(newData),
-                            //     onRowUpdate: (newData, oldData) => { updateRow(newData, oldData); reloadTable() }
-                            //     ,
-                            //     onRowDelete: oldData =>
-                            //         new Promise(resolve => {
-                            //             setTimeout(() => {
-                            //                 resolve();
-                            //                 setState(prevState => {
-                            //                     const data = [...prevState.data];
-                            //                     data.splice(data.indexOf(oldData), 1);
-                            //                     return { ...prevState, data };
-                            //                 });
-                            //             }, 600);
-                            //         }),
                         }}
                     />
                     : <GreenLinearProgress variant="query" />

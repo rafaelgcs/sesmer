@@ -76,7 +76,7 @@ function getSorting(order, orderBy) {
 const headCells = [
     { id: 'name', numeric: false, disablePadding: true, label: 'Item' },
     { id: 'name', numeric: true, disablePadding: true, label: 'Quant.' },
-    { id: 'val', numeric: true, disablePadding: false, label: 'Valor (R$)' },
+    { id: 'val', numeric: true, disablePadding: false, label: 'Valor' },
 ];
 
 function EnhancedTableHead(props) {
@@ -392,7 +392,7 @@ export default function TableCart(props) {
                                                 {row.obj.name}
                                             </TableCell>
                                             <TableCell align="right">{row.quantidade}</TableCell>
-                                            <TableCell align="right">{row.valor}</TableCell>
+                                            <TableCell align="right">{parseFloat(row.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
                                         </TableRow>
                                     );
                                 })}
