@@ -5,7 +5,8 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 require 'vendor/autoload.php';
 // $conn = new \PDO('mysql:host=localhost;dbname=sesmer_db', 'root', '');
-$conn = new \PDO('mysql:host=localhost;dbname=db_name', 'db_user', 'db_user_password');
+// $conn = new \PDO('mysql:host=localhost;dbname=db_name', 'db_user', 'db_user_password');
+$conn = new \PDO('mysql:host=localhost;dbname=ejcetc44_sesmer', 'ejcetc44_sesmer', 'sesmerpassword');
 
 $config = [
     'templates.path' => 'templates',

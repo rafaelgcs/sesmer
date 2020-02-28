@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken } from "./auth";
 
 const api = axios.create({
-  baseURL: "http://localhost/api"
+  baseURL: "http://sesmer.ejcet.com.br/api"
 });
 
 // api.interceptors.request.use(async config => {

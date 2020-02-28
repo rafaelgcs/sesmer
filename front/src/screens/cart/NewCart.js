@@ -661,14 +661,14 @@ export default function NewCart() {
                     <Typography component="h1" variant="h6" color="inherit" noWrap className={classes.title}>
                         Nova Venda
                     </Typography>
-                    <IconButton color="inherit">
+                    {/* <IconButton color="inherit">
                         <Badge badgeContent={4} color="secondary">
                             <NotificationsIcon />
                         </Badge>
                     </IconButton>
                     <IconButton color="inherit">
                         <Settings />
-                    </IconButton>
+                    </IconButton> */}
                     <IconButton color="inherit" onClick={() => _doLoggout()}>
                         <PowerSettingsNewIcon />
                     </IconButton>

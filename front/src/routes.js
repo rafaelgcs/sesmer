@@ -11,6 +11,7 @@ import HistoryCart from "./screens/cart/HistoryCart";
 import ClientesPage from "./screens/Clientes";
 import StockPage from "./screens/Stock";
 import AllCart from "./screens/cart/AllCart";
+import NotFound from "./screens/NotFound";
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route
@@ -38,7 +39,7 @@ const Routes = () => (
       <PrivateRoute exact path="/clientes" component={ClientesPage} />
       <PrivateRoute exact path="/stock" component={StockPage} />
       {/* <Route path="/signup" component={() => <h1>SignUp</h1>} /> */}
-      <Route path="*" component={() => <h1>Page not found</h1>} />
+      <Route path="*" component={NotFound} />
     </Switch>
   </BrowserRouter>
 );
